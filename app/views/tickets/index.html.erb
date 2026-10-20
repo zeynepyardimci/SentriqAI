@@ -1,0 +1,112 @@
+<% content_for :title, "Agent Incident Tickets | Sentriq AI" %>
+
+<!-- Metrics Bar -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <span class="metric-label">Total Agent Tickets</span>
+    <span class="metric-value"><%= @total_count %></span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Pending Human Review</span>
+    <span class="metric-value at-risk"><%= @pending_count %></span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Human Approved / Resolved</span>
+    <span class="metric-value solved"><%= @resolved_count %></span>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <%= form_with url: tickets_path, method: :get, local: true, class: "filter-inputs" do |f| %>
+    <%= f.select :status,
+      options_for_select([["All Statuses", "all"], ["Open", "open"], ["Investigating", "investigating"], ["Pending Review", "pending_review"], ["Resolved", "resolved"], ["Closed", "closed"]], params[:status]),
+      {}, class: "input-control" %>
+
+    <%= f.select :priority,
+      options_for_select([["All Priorities", "all"], ["Critical", "critical"], ["High", "high"], ["Medium", "medium"], ["Low", "low"]], params[:priority]),
+      {}, class: "input-control" %>
+
+    <%= f.submit "Filter", class: "btn btn-secondary" %>
+    <% if params[:status].present? || params[:priority].present? %>
+      <%= link_to "Clear", tickets_path, class: "btn btn-secondary", style: "color: #94a3b8;" %>
+    <% end %>
+  <% end %>
+
+  <div>
+    <%= link_to "Agent Activity & API Demo", demo_tickets_path, class: "btn btn-agent" %>
+  </div>
+</div>
+
+<!-- Tickets Table -->
+<div class="table-container">
+  <% if @tickets.any? %>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Ticket ID</th>
+          <th>Title & Context</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Assigned Agent</th>
+          <th>Human Decision</th>
+          <th>Created</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @tickets.each do |ticket| %>
+          <tr>
+            <td>
+              <span style="font-family: var(--font-mono); font-weight: 600; color: var(--cyan-primary);">
+                <%= ticket.ticket_number %>
+              </span>
+            </td>
+            <td>
+              <span class="cell-title"><%= link_to ticket.title, ticket_path(ticket) %></span>
+              <span class="cell-meta">
+                <%= ticket.description.truncate(85) %>
+                <% if ticket.detection %> &bull; Linked to <%= ticket.detection.hostname %><% end %>
+              </span>
+            </td>
+            <td>
+              <span class="badge badge-<%= ticket.priority %>"><%= ticket.priority %></span>
+            </td>
+            <td>
+              <span class="badge badge-status-<%= ticket.status %>"><%= ticket.status.humanize %></span>
+            </td>
+            <td>
+              <span style="font-size: 0.8rem; color: var(--text-secondary);"><%= ticket.assigned_agent || "Autonomous Agent" %></span>
+            </td>
+            <td>
+              <% if ticket.human_decision.present? %>
+                <span class="badge badge-status-solved"><%= ticket.human_decision.humanize %></span>
+                <% if ticket.human_reviewer %>
+                  <div style="font-size: 0.7rem; color: var(--text-muted);">by <%= ticket.human_reviewer.name %></div>
+                <% end %>
+              <% elsif ticket.status == "pending_review" %>
+                <span class="badge badge-high" style="animation: pulse-red 2s infinite;">Awaiting Review</span>
+              <% else %>
+                <span style="color: var(--text-muted); font-size: 0.75rem;">N/A</span>
+              <% end %>
+            </td>
+            <td>
+              <span style="font-family: var(--font-mono); font-size: 0.8rem;">
+                <%= time_ago_in_words(ticket.created_at) %> ago
+              </span>
+            </td>
+            <td>
+              <%= link_to "Review", ticket_path(ticket), class: "btn btn-secondary", style: "padding: 0.35rem 0.75rem; font-size: 0.8rem;" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <div style="padding: 4rem 2rem; text-align: center; color: var(--text-muted);">
+      <h3 style="color: var(--text-secondary); margin-bottom: 0.5rem;">No agent tickets found</h3>
+      <p style="font-size: 0.85rem; margin-bottom: 1.5rem;">External software agents have not submitted tickets under the current filter.</p>
+      <%= link_to "Simulate Agent Ticket Flow", demo_tickets_path, class: "btn btn-agent" %>
+    </div>
+  <% end %>
+</div>

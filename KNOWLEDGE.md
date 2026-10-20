@@ -202,6 +202,29 @@ kullan; uygulamayı çökertme ve uydurma sonuçla devam etme.
     bırakabilmeli ve onaylayabilmeli/eskale edebilmeli.
 -   Kim, neyi, ne zaman değiştirdi bilgisi audit log'a kaydedilmeli.
 
+### 6.1. Agent-First Mimarisi ve API Entegrasyonu
+
+Harici yazılım agent'ları (SOAR, botlar, SIEM webhook'ları) UI olmaksızın REST API üzerinden işlem yapabilir:
+- `POST /api/v1/tickets`: Idempotent ticket oluşturma (`Idempotency-Key` başlığı veya parametresi ile mükerrer istek koruması).
+- `GET /api/v1/tickets/:id`: Ticket ve ilişkili telemetri/not detaylarını okuma.
+- `GET /api/v1/detections`: Güvenlik tespitlerini ve kanıtlarını sorgulama.
+- `GET /api/v1/knowledge_base/search`: RAG bilgi tabanı runbook araması.
+- `POST /api/v1/tickets/:id/analyze`: LLM bağlamsal analiz ve yanıt taslağı üretimi.
+- `POST /api/v1/tickets/:id/notes`: Agent bulgu veya taslak notu ekleme.
+- `POST /api/v1/tickets/:id/escalate`: Belirsizlik/yüksek riskte insan incelemesi talep etme (`pending_review`).
+- `GET /api/v1/tickets/:id/human_decision`: İnsan analist kararını ve son durumu sorgulama.
+
+Yetkilendirme `Authorization: Bearer <demo_token>` veya `X-Agent-Token` ile sağlanır. Tüm API çağrıları audit log'a işlenir ve rate-limit başlıkları döndürülür.
+
+### 6.2. LLM Tabanlı Bağlamsal Karar Motoru (Contextual vs Keyword Matching)
+
+Sistem "acil", "teşekkür", "kritik" gibi yüzeysel anahtar kelimelere dayalı if/else kuralları ile karar VERMEZ.
+- LLM, cümlenin tüm anlamsal bağlamını değerlendirir. Örneğin "Dünkü acil durum tatbikatı başarıyla tamamlandı, teşekkürler" ifadesi acil kelimesi içerse de rutin bir tatbikat raporudur (`informational_retrospective`, düşük öncelik, insana devir gerektirmez).
+- Aktif süreç çalıştırma ve şüpheli LOLBin telemetrisi ("powershell -enc", "certutil -urlcache") içeren olaylar ise aktif tehdit olarak sınıflandırılır ve insan onayına (`pending_review`) devredilir.
+- Çelişkili veya belirsiz kanıt durumunda ajan kendiliğinden varsayım üretmez; `pending_review` durumuna geçirerek analiste devreder.
+- Bilgi tabanında eşleşmeyen olaylar için sahte kaynak üretilmez ("Kaynak bulunamadı" olarak raporlanır).
+
+
 ## 7. Durum akışı ve zaman kuralı
 
 Tespit/inceleme için açık ve test edilmiş bir durum akışı oluştur.

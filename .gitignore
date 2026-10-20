@@ -32,3 +32,6 @@ config/credentials/*.key
 .DS_Store
 Thumbs.db
 desktop.ini
+/scratch/*
+!/scratch/.keep
+

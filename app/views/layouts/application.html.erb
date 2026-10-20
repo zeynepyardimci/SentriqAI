@@ -56,6 +56,8 @@
 
       <nav class="nav-links">
         <%= link_to "Detections Triage", detections_path, class: "nav-link #{'active' if controller_name == 'detections'}" %>
+        <%= link_to "Agent Tickets", tickets_path, class: "nav-link #{'active' if controller_name == 'tickets' && action_name != 'demo'}" %>
+        <%= link_to "Agent Activity Demo", demo_tickets_path, class: "nav-link #{'active' if controller_name == 'tickets' && action_name == 'demo'}" %>
         <%= link_to "Knowledge Runbooks", knowledge_documents_path, class: "nav-link #{'active' if controller_name == 'knowledge_documents'}" %>
         <%= link_to "Audit Trail", audit_trail_path, class: "nav-link #{'active' if controller_name == 'audit_events'}" %>
         

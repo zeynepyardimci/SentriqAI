@@ -1,0 +1,185 @@
+<% content_for :title, "Agent Activity & API Simulation | Sentriq AI" %>
+
+<div style="margin-bottom: 2rem;">
+  <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+    <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text-primary);">Agent Activity & API Simulation</h1>
+    <span class="badge" style="background: rgba(6, 182, 212, 0.2); color: #22d3ee; border: 1px solid var(--cyan-primary);">
+      Agent-First Integration
+    </span>
+  </div>
+  <p style="color: var(--text-secondary); font-size: 0.95rem; max-width: 900px; line-height: 1.6;">
+    Harici yazılım agent'ları (SOAR, EDR webhook, otomasyon botları) Sentriq AI'ya UI kullanmadan REST API üzerinden bağlanır.
+    İstekler kaydedilir, LLM tüm bağlamı (telemetri, geçmiş, RAG) değerlendirir ve yüksek risk veya belirsizlik durumunda insan analiste devreder.
+  </p>
+</div>
+
+<!-- Interactive 1-Click Agent Flow Simulator -->
+<div class="panel-card" style="border: 1px solid rgba(139, 92, 246, 0.4); margin-bottom: 2rem;">
+  <div class="panel-title">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2">
+        <polygon points="5 3 19 12 5 21 5 3"/>
+      </svg>
+      <span style="color: #c084fc;">Canlı Ajan Simülasyon Senaryoları (Interactive 1-Click Agent Triggers)</span>
+    </div>
+    <span style="font-size: 0.75rem; color: var(--text-muted);">Real Backend Transactions</span>
+  </div>
+
+  <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+    Aşağıdaki butonlara tıklayarak harici bir agent'ın API çağrısı yapmasını, veritabanına gerçek bir ticket kaydetmesini, RAG aramasını ve LLM bağlamsal kararını canlı olarak tetikleyebilirsiniz:
+  </p>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
+    <!-- Scenario 1: Active Threat Ingestion -->
+    <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <strong style="color: #f87171; font-size: 0.95rem;">Senaryo A: Aktif Tehdit Tespiti</strong>
+          <span class="badge badge-critical">Critical / Handover</span>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1rem;">
+          Harici agent, Word altındaki şüpheli PowerShell yürütmesini ve dış IP bağlantısını iletir. LLM aktif tehdidi saptar, RAG runbook'unu iliştirir ve onay için <strong>pending_review</strong> durumuna devreder.
+        </p>
+      </div>
+      <%= button_to trigger_agent_flow_tickets_path(scenario: "active_threat"), method: :post, class: "btn btn-primary", style: "width: 100%; justify-content: center;" do %>
+        Senaryo A'yı Tetikle (Active Threat)
+      <% end %>
+    </div>
+
+    <!-- Scenario 2: Contextual False Keyword Test -->
+    <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <strong style="color: #60a5fa; font-size: 0.95rem;">Senaryo B: Kelime Değil, Bağlamsal Karar</strong>
+          <span class="badge badge-low">Low / Auto-Resolved</span>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1rem;">
+          İçerikte "acil" ve "teşekkürler" kelimeleri geçmektedir ancak mesaj dünkü tatbikatın başarıyla bittiğini bildirmektedir. LLM kelime tuzağına düşmez; olayı düşük öncelikli arşiv olarak sınıflandırır.
+        </p>
+      </div>
+      <%= button_to trigger_agent_flow_tickets_path(scenario: "retrospective_drill"), method: :post, class: "btn btn-secondary", style: "width: 100%; justify-content: center;" do %>
+        Senaryo B'yi Tetikle (Contextual Test)
+      <% end %>
+    </div>
+
+    <!-- Scenario 3: Ambiguous Request -->
+    <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <strong style="color: #fbbf24; font-size: 0.95rem;">Senaryo C: Belirsiz & Çelişkili Talep</strong>
+          <span class="badge badge-high">Ambiguous / Review</span>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1rem;">
+          İstekte kural aşımı veya çelişkili güvenlik durumu bulunmaktadır. Sistem belirsizlik durumunda kendiliğinden karar almaz; analiste devreder.
+        </p>
+      </div>
+      <%= button_to trigger_agent_flow_tickets_path(scenario: "ambiguous_inquiry"), method: :post, class: "btn btn-secondary", style: "width: 100%; justify-content: center;" do %>
+        Senaryo C'yi Tetikle (Ambiguity Handover)
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Live Agent API Endpoints & cURL Reference -->
+<div class="panel-card">
+  <div class="panel-title">
+    <span>Agent REST API V1 Entegrasyon Dokümantasyonu</span>
+    <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--cyan-primary);">Token: <%= @analyst_user&.demo_token || "demo-analyst-token-01" %></span>
+  </div>
+
+  <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+    Harici yazılım agent'ları terminal, Python betikleri veya SOAR playbooks üzerinden aşağıdaki REST endpoint'lerini doğrudan çağırabilir:
+  </p>
+
+  <div style="display: flex; flex-direction: column; gap: 1rem;">
+    <!-- Endpoint 1 -->
+    <div style="background: rgba(0,0,0,0.35); border-radius: var(--radius-sm); padding: 1rem; border-left: 3px solid var(--cyan-primary);">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+        <span style="font-family: var(--font-mono); font-weight: 600; color: #38bdf8;">POST /api/v1/tickets</span>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Ticket Oluşturma (Idempotent)</span>
+      </div>
+      <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); background: #000; padding: 0.65rem; border-radius: 4px; overflow-x: auto;">
+curl -X POST http://127.0.0.1:3000/api/v1/tickets \<br>
+&nbsp;&nbsp;-H "Authorization: Bearer <%= @analyst_user&.demo_token || 'demo-analyst-token-01' %>" \<br>
+&nbsp;&nbsp;-H "Idempotency-Key: agent-req-998812" \<br>
+&nbsp;&nbsp;-H "Content-Type: application/json" \<br>
+&nbsp;&nbsp;-d '{"title": "Unusual PowerShell Execution", "description": "Encoded command detected on WKSTN-FIN-089", "priority": "high", "detection_id": 1}'
+      </div>
+    </div>
+
+    <!-- Endpoint 2 -->
+    <div style="background: rgba(0,0,0,0.35); border-radius: var(--radius-sm); padding: 1rem; border-left: 3px solid #8b5cf6;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+        <span style="font-family: var(--font-mono); font-weight: 600; color: #c084fc;">POST /api/v1/tickets/:id/analyze</span>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">LLM Bağlamsal Karar & RAG Runbook Analizi</span>
+      </div>
+      <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); background: #000; padding: 0.65rem; border-radius: 4px; overflow-x: auto;">
+curl -X POST http://127.0.0.1:3000/api/v1/tickets/1/analyze \<br>
+&nbsp;&nbsp;-H "Authorization: Bearer <%= @analyst_user&.demo_token || 'demo-analyst-token-01' %>"
+      </div>
+    </div>
+
+    <!-- Endpoint 3 -->
+    <div style="background: rgba(0,0,0,0.35); border-radius: var(--radius-sm); padding: 1rem; border-left: 3px solid #10b981;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+        <span style="font-family: var(--font-mono); font-weight: 600; color: #34d399;">GET /api/v1/tickets/:id/human_decision</span>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">İnsan Analist Kararı ve Durumu Sorgulama</span>
+      </div>
+      <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); background: #000; padding: 0.65rem; border-radius: 4px; overflow-x: auto;">
+curl -X GET http://127.0.0.1:3000/api/v1/tickets/1/human_decision \<br>
+&nbsp;&nbsp;-H "Authorization: Bearer <%= @analyst_user&.demo_token || 'demo-analyst-token-01' %>"
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Tickets Feed -->
+<div class="panel-card" style="margin-top: 2rem;">
+  <div class="panel-title">
+    <span>Son Ajan Ticket Akışı (Live Ingest Feed)</span>
+    <%= link_to "Tüm Ticket'ları Gör &rarr;".html_safe, tickets_path, style: "font-size: 0.75rem;" %>
+  </div>
+
+  <% if @recent_tickets.any? %>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Ticket No</th>
+          <th>Başlık</th>
+          <th>Öncelik</th>
+          <th>Durum</th>
+          <th>Ajan</th>
+          <th>İnsan Kararı</th>
+          <th>Oluşturulma</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @recent_tickets.each do |ticket| %>
+          <tr>
+            <td>
+              <span style="font-family: var(--font-mono); font-weight: 600; color: var(--cyan-primary);">
+                <%= link_to ticket.ticket_number, ticket_path(ticket) %>
+              </span>
+            </td>
+            <td><%= ticket.title.truncate(55) %></td>
+            <td><span class="badge badge-<%= ticket.priority %>"><%= ticket.priority %></span></td>
+            <td><span class="badge badge-status-<%= ticket.status %>"><%= ticket.status.humanize %></span></td>
+            <td><span style="font-size: 0.8rem; color: var(--text-muted);"><%= ticket.assigned_agent %></span></td>
+            <td>
+              <% if ticket.human_decision.present? %>
+                <span class="badge badge-status-solved"><%= ticket.human_decision.humanize %></span>
+              <% elsif ticket.status == "pending_review" %>
+                <span class="badge badge-high">Awaiting Review</span>
+              <% else %>
+                <span style="color: var(--text-muted); font-size: 0.75rem;">N/A</span>
+              <% end %>
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.75rem;"><%= time_ago_in_words(ticket.created_at) %> ago</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p style="color: var(--text-muted); font-size: 0.85rem;">Henüz oluşturulmuş ticket bulunmuyor. Yukarıdaki senaryolardan birini tetikleyin.</p>
+  <% end %>
+</div>

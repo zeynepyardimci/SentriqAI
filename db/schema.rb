@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_21_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -134,6 +134,49 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_000001) do
     t.index ["knowledge_document_id"], name: "index_source_references_on_knowledge_document_id"
   end
 
+  create_table "ticket_notes", force: :cascade do |t|
+    t.bigint "ticket_id", null: false
+    t.bigint "user_id"
+    t.string "author_type", default: "agent", null: false
+    t.string "author_name", default: "External Agent", null: false
+    t.string "note_type", default: "finding", null: false
+    t.text "body", null: false
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ticket_id", "created_at"], name: "index_ticket_notes_on_ticket_id_and_created_at"
+    t.index ["ticket_id"], name: "index_ticket_notes_on_ticket_id"
+    t.index ["user_id"], name: "index_ticket_notes_on_user_id"
+  end
+
+  create_table "tickets", force: :cascade do |t|
+    t.string "ticket_number", null: false
+    t.string "title", null: false
+    t.text "description", null: false
+    t.string "status", default: "open", null: false
+    t.string "priority", default: "medium", null: false
+    t.string "assigned_agent"
+    t.string "idempotency_key"
+    t.bigint "detection_id"
+    t.bigint "user_id"
+    t.bigint "human_reviewer_id"
+    t.jsonb "context_metadata", default: {}
+    t.jsonb "llm_analysis", default: {}
+    t.string "human_decision"
+    t.text "human_decision_notes"
+    t.datetime "human_reviewed_at"
+    t.string "agent_mode", default: "simulated_local", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["detection_id"], name: "index_tickets_on_detection_id"
+    t.index ["human_reviewer_id"], name: "index_tickets_on_human_reviewer_id"
+    t.index ["idempotency_key"], name: "index_tickets_on_idempotency_key", unique: true
+    t.index ["priority"], name: "index_tickets_on_priority"
+    t.index ["status"], name: "index_tickets_on_status"
+    t.index ["ticket_number"], name: "index_tickets_on_ticket_number", unique: true
+    t.index ["user_id"], name: "index_tickets_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email", null: false
     t.string "name", null: false
@@ -156,4 +199,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_000001) do
   add_foreign_key "knowledge_chunks", "knowledge_documents"
   add_foreign_key "source_references", "investigations"
   add_foreign_key "source_references", "knowledge_documents"
+  add_foreign_key "ticket_notes", "tickets"
+  add_foreign_key "ticket_notes", "users"
+  add_foreign_key "tickets", "detections"
+  add_foreign_key "tickets", "users"
+  add_foreign_key "tickets", "users", column: "human_reviewer_id"
 end
