@@ -50,4 +50,4 @@ Tamamlanmamış özellikleri tamamlanmış gibi gösterme; kaynak, test sonucu, 
 
 ## Karar
 
-- Devam / pivot / öldür ve gerekçesi: Devam. Güvenlik analistlerinin alarm kök neden araştırmasındaki manuel yük gerçek bir operasyonel darboğazdır. Çözüm tek dikey dilimle somut şekilde kanıtlanabilir.
+- Devam / pivot / öldür ve gerekçesi: Öldür. Önceki projede motivasyon eksikliği vardı. Yeni olan projeye Devam. Güvenlik analistlerinin alarm kök neden araştırmasındaki manuel yük gerçek bir operasyonel darboğazdır. Çözüm tek dikey dilimle somut şekilde kanıtlanabilir.

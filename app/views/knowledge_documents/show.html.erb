@@ -1,0 +1,43 @@
+<% content_for :title, "#{@document.title} | Knowledge Base" %>
+
+<div style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
+  <%= link_to "Knowledge Base", knowledge_documents_path %> &rarr;
+  <span style="color: var(--text-secondary);"><%= @document.title %></span>
+</div>
+
+<div class="panel-card">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+    <div>
+      <span class="badge badge-medium" style="margin-bottom: 0.5rem;"><%= @document.category.humanize %></span>
+      <% if @document.external_reference.present? %>
+        <span class="badge badge-low" style="margin-bottom: 0.5rem;"><%= @document.external_reference %></span>
+      <% end %>
+      <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);"><%= @document.title %></h1>
+    </div>
+  </div>
+
+  <div style="background: rgba(0,0,0,0.3); border-radius: var(--radius-sm); padding: 1.25rem; font-size: 0.95rem; line-height: 1.7; color: var(--text-secondary); white-space: pre-line; border: 1px solid var(--border-subtle); margin-bottom: 2rem;">
+    <%= @document.content %>
+  </div>
+
+  <!-- Indexed Chunks for RAG -->
+  <div class="panel-title">
+    <span>Indexed Knowledge Chunks for Vector/Lexical RAG Retrieval (<%= @document.knowledge_chunks.count %>)</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+    <% @document.knowledge_chunks.order(:chunk_index).each do |chunk| %>
+      <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+          <strong style="color: var(--cyan-primary); font-size: 0.8rem; font-family: var(--font-mono);">Chunk #<%= chunk.chunk_index + 1 %></strong>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;"><%= chunk.chunk_text %></p>
+        <% if chunk.keywords.present? %>
+          <div style="margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted);">
+            Keywords: <%= chunk.keywords.truncate(150) %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

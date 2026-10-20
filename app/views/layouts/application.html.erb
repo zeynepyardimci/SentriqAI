@@ -1,28 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title><%= content_for(:title) || "Sentriq Ai" %></title>
+    <title><%= content_for(:title) || "Sentriq AI - Security Detection Triage & AI Investigation" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="Sentriq Ai">
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
     <%= yield :head %>
 
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
-    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
-
-    <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/icon.png">
-
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
   </head>
 
   <body>
-    <%= yield %>
+    <!-- System Disclaimer Banner -->
+    <div class="disclaimer-banner">
+      <div>
+        <strong>SENTRIQ AI DEMO ENVIRONMENT</strong> &bull; Synthetic Security Telemetry &bull; Controlled Access Prototype
+      </div>
+      <div>
+        Active Provider: 
+        <% if ENV["OPENAI_API_KEY"].present? %>
+          <span style="color: #10b981;">OpenAI Live (<%= ENV.fetch("OPENAI_MODEL", "gpt-4o-mini") %>)</span>
+        <% elsif ENV["GEMINI_API_KEY"].present? %>
+          <span style="color: #10b981;">Gemini Live (<%= ENV.fetch("GEMINI_MODEL", "gemini-1.5-flash") %>)</span>
+        <% else %>
+          <span style="color: #f59e0b;">Deterministic Local Engine (Simulated Mode)</span>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Header Navigation -->
+    <header class="sentriq-header">
+      <div class="brand-container">
+        <a href="<%= root_path %>" style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none;">
+          <!-- Custom Sentriq AI Geometric Shield SVG Logo -->
+          <svg class="brand-logo-svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="20,2 38,10 38,24 20,38 2,24 2,10" fill="#0F172A" stroke="#06B6D4" stroke-width="2"/>
+            <polygon points="20,8 32,14 32,22 20,32 8,22 8,14" fill="rgba(6, 182, 212, 0.15)" stroke="#8B5CF6" stroke-width="1.5"/>
+            <circle cx="20" cy="20" r="4" fill="#06B6D4"/>
+            <line x1="20" y1="8" x2="20" y2="16" stroke="#06B6D4" stroke-width="1.5"/>
+            <line x1="20" y1="24" x2="20" y2="32" stroke="#8B5CF6" stroke-width="1.5"/>
+            <line x1="8" y1="18" x2="16" y2="20" stroke="#06B6D4" stroke-width="1.5"/>
+            <line x1="24" y1="20" x2="32" y2="18" stroke="#8B5CF6" stroke-width="1.5"/>
+          </svg>
+          <div class="brand-text">
+            <span class="brand-title">SENTRIQ AI</span>
+            <span class="brand-tagline">Autonomous SOC Copilot</span>
+          </div>
+        </a>
+      </div>
+
+      <nav class="nav-links">
+        <%= link_to "Detections Triage", detections_path, class: "nav-link #{'active' if controller_name == 'detections'}" %>
+        <%= link_to "Knowledge Runbooks", knowledge_documents_path, class: "nav-link #{'active' if controller_name == 'knowledge_documents'}" %>
+        <%= link_to "Audit Trail", audit_trail_path, class: "nav-link #{'active' if controller_name == 'audit_events'}" %>
+        
+        <!-- SLA Trigger Button -->
+        <%= button_to check_sla_detections_path, method: :post, class: "btn btn-secondary", style: "padding: 0.35rem 0.65rem; font-size: 0.75rem;" do %>
+          Scan SLA Status
+        <% end %>
+
+        <!-- Persona Switcher -->
+        <% if current_user %>
+          <div class="persona-badge">
+            <div class="status-dot"></div>
+            <span><strong><%= current_user.name %></strong> (<%= current_user.role.humanize %>)</span>
+            <%= link_to "Switch", new_session_path, style: "font-size: 0.75rem; margin-left: 0.3rem;" %>
+          </div>
+        <% else %>
+          <%= link_to "Select Persona", new_session_path, class: "btn btn-primary" %>
+        <% end %>
+      </nav>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="main-container">
+      <% if notice %>
+        <div class="flash-message flash-notice">
+          <span><%= notice %></span>
+        </div>
+      <% end %>
+
+      <% if alert %>
+        <div class="flash-message flash-alert">
+          <span><%= alert %></span>
+        </div>
+      <% end %>
+
+      <%= yield %>
+    </main>
+
+    <!-- Footer -->
+    <footer class="sentriq-footer">
+      <p>
+        <strong>Sentriq AI</strong> &bull; Incident Triage & Automated Investigation Prototype.
+        Designed for SOC Level 1/2 workflow acceleration.
+      </p>
+      <p style="margin-top: 0.4rem; font-size: 0.75rem; color: #64748b;">
+        Independent prototype inspired by modern EDR investigation triage workflows. Not affiliated with, endorsed by, or partnered with CrowdStrike or Falcon.
+      </p>
+    </footer>
   </body>
 </html>

@@ -110,7 +110,6 @@ GEM
     erubi (1.13.1)
     et-orbi (1.4.2)
       tzinfo
-    ffi (1.17.4-x64-mingw-ucrt)
     fugit (1.14.0)
       et-orbi (~> 1.4)
       raabro (~> 1.4)
@@ -118,9 +117,6 @@ GEM
       activesupport (>= 6.1)
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
-    image_processing (1.14.0)
-      mini_magick (>= 4.9.5, < 6)
-      ruby-vips (>= 2.0.17, < 3)
     importmap-rails (2.2.3)
       actionpack (>= 6.0.0)
       activesupport (>= 6.0.0)
@@ -149,8 +145,6 @@ GEM
       net-smtp
     marcel (1.2.1)
     matrix (0.4.3)
-    mini_magick (5.4.0)
-      logger
     mini_mime (1.1.5)
     minitest (6.0.6)
       drb (~> 2.0)
@@ -168,11 +162,14 @@ GEM
     nio4r (2.7.5)
     nokogiri (1.19.4-x64-mingw-ucrt)
       racc (~> 1.4)
+    nokogiri (1.19.4-x86_64-linux-gnu)
+      racc (~> 1.4)
     parallel (2.3.0)
     parser (3.3.12.0)
       ast (~> 2.4.1)
       racc
     pg (1.7.0-x64-mingw-ucrt)
+    pg (1.7.0-x86_64-linux)
     pp (0.6.4)
       prettyprint
     prettyprint (0.2.1)
@@ -267,9 +264,6 @@ GEM
       rubocop-performance (>= 1.24)
       rubocop-rails (>= 2.30)
     ruby-progressbar (1.13.0)
-    ruby-vips (2.3.0)
-      ffi (~> 1.12)
-      logger
     rubyzip (3.7.0)
     securerandom (0.4.1)
     selenium-webdriver (4.51.0)
@@ -297,6 +291,7 @@ GEM
       railties (>= 6.0.0)
     thor (1.5.0)
     thruster (0.1.27)
+    thruster (0.1.27-x86_64-linux)
     timeout (0.6.1)
     tsort (0.2.0)
     turbo-rails (2.0.23)
@@ -326,6 +321,7 @@ GEM
 
 PLATFORMS
   x64-mingw-ucrt
+  x86_64-linux
 
 DEPENDENCIES
   bootsnap
@@ -333,7 +329,6 @@ DEPENDENCIES
   bundler-audit
   capybara
   debug
-  image_processing (~> 1.2)
   importmap-rails
   jbuilder
   pg (~> 1.1)

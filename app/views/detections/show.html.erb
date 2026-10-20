@@ -1,0 +1,327 @@
+<% content_for :title, "#{@detection.title} | Sentriq AI" %>
+
+<!-- Breadcrumb -->
+<div style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
+  <%= link_to "Detections", detections_path %> &rarr;
+  <span style="color: var(--text-secondary);"><%= @detection.title %></span>
+</div>
+
+<!-- Detection Header -->
+<div class="detail-header">
+  <div class="detail-header-top">
+    <div>
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+        <span class="badge badge-<%= @detection.severity %>"><%= @detection.severity %></span>
+        <span class="badge badge-status-<%= @detection.status %>"><%= @detection.status.humanize %></span>
+        <% if @detection.sla_risk? %>
+          <span class="badge badge-sla-risk">SLA Breached (>15m unworked)</span>
+        <% end %>
+      </div>
+      <h1 class="detail-title"><%= @detection.title %></h1>
+      <p style="color: var(--text-secondary); font-size: 0.9rem;"><%= @detection.description %></p>
+    </div>
+
+    <!-- Primary Action: Run AI Investigation -->
+    <div class="detail-actions">
+      <%= button_to investigate_detection_path(@detection), method: :post, class: "btn btn-agent", data: { turbo_confirm: "Start autonomous AI investigation and RAG retrieval?" } do %>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+        </svg>
+        AI ile Araştır (Investigate)
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Telemetry Bar -->
+  <div class="telemetry-strip">
+    <div class="telemetry-item">
+      <span class="telemetry-label">Hostname</span>
+      <span class="telemetry-value"><%= @detection.hostname %></span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">IP Address</span>
+      <span class="telemetry-value"><%= @detection.ip_address || "10.0.0.1" %></span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">Target Process</span>
+      <span class="telemetry-value"><%= @detection.process_name %> (PID: <%= @detection.process_id %>)</span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">Parent Process</span>
+      <span class="telemetry-value"><%= @detection.parent_process_name || "N/A" %></span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">User Context</span>
+      <span class="telemetry-value"><%= @detection.username || "SYSTEM" %></span>
+    </div>
+    <div class="telemetry-item">
+      <span class="telemetry-label">Triggered</span>
+      <span class="telemetry-value"><%= @detection.triggered_at.strftime("%Y-%m-%d %H:%M:%S") %> (<%= time_ago_in_words(@detection.triggered_at) %> ago)</span>
+    </div>
+  </div>
+
+  <% if @detection.command_line.present? %>
+    <div style="margin-top: 1rem; background: rgba(0, 0, 0, 0.4); padding: 0.75rem 1rem; border-radius: var(--radius-sm); border-left: 3px solid var(--cyan-primary);">
+      <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">Command Line Telemetry</div>
+      <div style="font-family: var(--font-mono); font-size: 0.8rem; color: #38bdf8; word-break: break-all;">
+        <%= @detection.command_line %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<!-- Two-Column Layout: Left = Evidence & Process Tree / Right = AI Investigation & Human Review -->
+<div class="triage-grid">
+  <!-- LEFT COLUMN: Evidence Timeline & Process Lineage -->
+  <div>
+    <!-- Process Tree -->
+    <div class="panel-card">
+      <div class="panel-title">
+        <span>Execution Lineage & Process Tree</span>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Process Ancestry</span>
+      </div>
+      <div class="process-tree">
+        <% if @detection.parent_process_name.present? %>
+          <div class="tree-node parent">
+            <span class="tree-connector">&bull;</span>
+            <span><strong>[Parent]</strong> <%= @detection.parent_process_name %> (PID: <%= @detection.parent_process_id || "N/A" %>)</span>
+          </div>
+          <div class="tree-node target">
+            <span class="tree-connector">&boxur;&nbsp;</span>
+            <span><strong>[Target Alert]</strong> <%= @detection.process_name %> (PID: <%= @detection.process_id %>)</span>
+          </div>
+        <% else %>
+          <div class="tree-node target">
+            <span class="tree-connector">&bull;&nbsp;</span>
+            <span><strong>[Target Alert]</strong> <%= @detection.process_name %> (PID: <%= @detection.process_id %>)</span>
+          </div>
+        <% end %>
+
+        <% @evidences.each do |ev| %>
+          <div class="tree-node child">
+            <span class="tree-connector">&nbsp;&nbsp;&boxur;&nbsp;</span>
+            <span>[<%= ev.evidence_type.humanize %>] <%= ev.description.truncate(85) %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Correlated Evidence Events -->
+    <div class="panel-card">
+      <div class="panel-title">
+        <span>Correlated Evidence Events (<%= @evidences.count %>)</span>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Chronological Telemetry</span>
+      </div>
+
+      <% if @evidences.any? %>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <% @evidences.each do |ev| %>
+            <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <span class="badge badge-low"><%= ev.evidence_type.humanize %></span>
+                <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);"><%= ev.occurred_at.strftime("%H:%M:%S") %></span>
+              </div>
+              <div style="color: var(--text-primary); font-size: 0.85rem; margin-bottom: 0.3rem;"><%= ev.description %></div>
+              <% if ev.details.present? && ev.details.any? %>
+                <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 0.4rem; border-radius: 4px;">
+                  <%= ev.details.to_json %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">No discrete sub-events recorded for this detection.</p>
+      <% end %>
+    </div>
+
+    <!-- Audit Event Log for this Detection -->
+    <div class="panel-card">
+      <div class="panel-title">
+        <span>Detection Audit Trail (<%= @audit_events.count %>)</span>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">Compliance & Actions</span>
+      </div>
+      <% if @audit_events.any? %>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <% @audit_events.each do |audit| %>
+            <div style="font-size: 0.8rem; padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.2); border-radius: var(--radius-sm); display: flex; justify-content: space-between;">
+              <div>
+                <strong style="color: var(--cyan-primary);"><%= audit.action.humanize %></strong>
+                <% if audit.user %><span style="color: var(--text-muted);"> by <%= audit.user.name %></span><% end %>
+                <% if audit.details.present? %>
+                  <span style="color: var(--text-secondary); margin-left: 0.5rem;"><%= audit.details.to_json %></span>
+                <% end %>
+              </div>
+              <span style="font-family: var(--font-mono); color: var(--text-muted); font-size: 0.75rem;"><%= time_ago_in_words(audit.created_at) %> ago</span>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">No audit events recorded yet.</p>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN: AI Investigation Findings & Human-in-the-Loop Review -->
+  <div>
+    <% if @latest_investigation %>
+      <!-- AI Investigation Card -->
+      <div class="panel-card ai-report-card">
+        <div class="panel-title">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2">
+              <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
+              <path d="M12 12L2.5 7.5"/>
+            </svg>
+            <span style="color: #c084fc;">AI Investigation Report</span>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span class="badge" style="background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid #8b5cf6;">
+              <%= @latest_investigation.agent_mode == 'live_llm' ? 'Live LLM Provider' : 'Simulated Local Engine' %>
+            </span>
+            <span class="badge" style="background: rgba(6, 182, 212, 0.2); color: #22d3ee; border: 1px solid var(--cyan-primary);">
+              Confidence: <%= @latest_investigation.confidence_score %>%
+            </span>
+          </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="ai-summary-box">
+          <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #a78bfa; margin-bottom: 0.35rem;">Executive Summary</div>
+          <%= @latest_investigation.summary %>
+        </div>
+
+        <!-- Observed Evidence -->
+        <div class="section-subtitle">Gözlemlenen Kanıtlar (Observed Evidence)</div>
+        <ul class="bullet-list">
+          <% (@latest_investigation.observed_evidence || []).each do |obs| %>
+            <li class="bullet-item"><%= obs %></li>
+          <% end %>
+        </ul>
+
+        <!-- Possible Causes & Hypotheses -->
+        <div class="section-subtitle">Olası Nedenler & Hipotezler (Possible Causes)</div>
+        <% (@latest_investigation.possible_causes || []).each do |cause| %>
+          <div class="hypothesis-box">
+            <div class="hypothesis-header">
+              <span class="hypothesis-name"><%= cause["hypothesis"] || cause[:hypothesis] %></span>
+              <span class="badge badge-<%= (cause["likelihood"] || cause[:likelihood] || 'medium').downcase %>">
+                Likelihood: <%= cause["likelihood"] || cause[:likelihood] %>
+              </span>
+            </div>
+            <div class="hypothesis-rationale"><%= cause["rationale"] || cause[:rationale] %></div>
+          </div>
+        <% end %>
+
+        <!-- Evidence Gaps -->
+        <div class="section-subtitle">Kanıt Boşlukları (Evidence Gaps)</div>
+        <ul class="bullet-list">
+          <% (@latest_investigation.evidence_gaps || []).each do |gap| %>
+            <li class="bullet-item" style="color: #fbbf24;"><%= gap %></li>
+          <% end %>
+        </ul>
+
+        <!-- Recommended Steps -->
+        <div class="section-subtitle">Önerilen Sonraki Adımlar (Recommended Steps)</div>
+        <ul class="bullet-list">
+          <% (@latest_investigation.recommended_steps || []).each do |step| %>
+            <li class="bullet-item" style="color: #34d399;"><%= step %></li>
+          <% end %>
+        </ul>
+
+        <!-- Verified RAG Source References -->
+        <div class="section-subtitle">Doğrulanmış Bilgi Tabanı Kaynakları (RAG Citations)</div>
+        <% if @latest_investigation.source_references.any? %>
+          <% @latest_investigation.source_references.each do |ref| %>
+            <div class="source-ref-card">
+              <div class="source-ref-title">
+                <span><%= ref.knowledge_document.title %> (<%= ref.knowledge_document.category.humanize %>)</span>
+                <%= link_to "Dokümanı İncele &rarr;".html_safe, knowledge_document_path(ref.knowledge_document), style: "font-size: 0.75rem;" %>
+              </div>
+              <div class="source-ref-quote">"<%= ref.quote %>"</div>
+              <div class="source-ref-relevance">&rarr; <%= ref.relevance_explanation %></div>
+            </div>
+          <% end %>
+        <% else %>
+          <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: #fbbf24;">
+            <strong>Kaynak bulunamadı:</strong> Bilgi tabanında bu tespit için eşleşen bir prosedür dokümanı bulunmamaktadır. Model kaynaksız varsayım üretmemiştir.
+          </div>
+        <% end %>
+
+        <!-- Limitations & Disclaimer -->
+        <% if @latest_investigation.limitations.present? %>
+          <div style="margin-top: 1.25rem; padding: 0.75rem; background: rgba(0, 0, 0, 0.3); border-radius: var(--radius-sm); font-size: 0.75rem; color: var(--text-muted);">
+            <strong>Sınırlılıklar & Model Uyarısı:</strong> <%= @latest_investigation.limitations %>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Human-in-the-Loop Review & Decision Panel -->
+      <div class="panel-card" style="border: 1px solid rgba(16, 185, 129, 0.3);">
+        <div class="panel-title">
+          <span>İnsan Analist Denetimi (Human-in-the-Loop)</span>
+          <span class="badge badge-status-<%= @detection.status %>"><%= @detection.status.humanize %></span>
+        </div>
+
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          Yapay zekâ bulguları yalnızca öneri niteliğindedir. Ağ izolasyonu, kural değişikliği ve bilet kapatma kararları insan analistin onayını gerektirir.
+        </p>
+
+        <!-- Review Decision Actions -->
+        <%= form_with url: review_detection_path(@detection), method: :post, local: true do |f| %>
+          <div style="margin-bottom: 1rem;">
+            <%= f.label :note_body, "Analist Karar Notu / Gerekçesi", style: "display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.35rem;" %>
+            <%= f.text_area :note_body, rows: 3, placeholder: "Örn: Yanlış pozitif teyit edildi veya Seviye 2 analist onayına sevk edildi...", class: "input-control", style: "width: 100%; resize: vertical;" %>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <% if @detection.status.in?(%w[new open investigating]) %>
+              <%= f.button "Lead Analiste Eskale Et (Pending Review)", name: "review_action", value: "escalate_to_lead", class: "btn btn-primary" %>
+            <% end %>
+
+            <% if @detection.status == "pending_review" %>
+              <%= f.button "Onayla ve Çözüldü Olarak İşaretle", name: "review_action", value: "approve_and_solve", class: "btn btn-success" %>
+              <%= f.button "Daha Fazla Kanıt İste (Geri Gönder)", name: "review_action", value: "request_changes", class: "btn btn-secondary" %>
+            <% end %>
+
+            <% if @detection.status == "solved" %>
+              <%= f.button "Alarmi Yeniden Aç (Reopen)", name: "review_action", value: "reopen", class: "btn btn-danger" %>
+            <% end %>
+          </div>
+        <% end %>
+
+        <!-- Existing Notes on this Investigation -->
+        <% if @latest_investigation.investigation_notes.any? %>
+          <div style="margin-top: 1.5rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+            <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.75rem;">Eklenen Analist Notları (<%= @latest_investigation.investigation_notes.count %>)</div>
+            <% @latest_investigation.investigation_notes.each do |n| %>
+              <div style="background: rgba(0,0,0,0.25); border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; margin-bottom: 0.5rem; font-size: 0.85rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                  <strong style="color: var(--cyan-primary);"><%= n.user.name %> (<%= n.note_type.humanize %>)</strong>
+                  <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);"><%= time_ago_in_words(n.created_at) %> ago</span>
+                </div>
+                <div style="color: var(--text-secondary);"><%= n.body %></div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+    <% else %>
+      <!-- Empty State: Ready for AI Investigation -->
+      <div class="panel-card" style="text-align: center; padding: 3.5rem 2rem;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="1.5" style="margin-bottom: 1rem;">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 8v4l3 3"/>
+        </svg>
+        <h3 style="color: var(--text-primary); margin-bottom: 0.5rem;">Henüz AI Araştırması Başlatılmadı</h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); max-width: 440px; margin: 0 auto 1.5rem auto;">
+          Tespitin kök nedenini, süreç ağacını, MITRE taktiklerini ve ilişkili iç bilgi dokümanlarını otomatik incelemek için AI ajanını başlatın.
+        </p>
+        <%= button_to investigate_detection_path(@detection), method: :post, class: "btn btn-agent", style: "padding: 0.75rem 1.5rem; font-size: 0.95rem;" do %>
+          AI ile Araştır (Start Investigation)
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

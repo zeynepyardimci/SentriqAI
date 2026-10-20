@@ -1,0 +1,117 @@
+<% content_for :title, "Security Detections Triage | Sentriq AI" %>
+
+<!-- Metrics Bar -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <span class="metric-label">Total Detections</span>
+    <span class="metric-value"><%= @total_count %></span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Critical Severity</span>
+    <span class="metric-value critical"><%= @critical_count %></span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">SLA Risk (>15m)</span>
+    <span class="metric-value at-risk"><%= @at_risk_count %></span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Resolved / Solved</span>
+    <span class="metric-value solved"><%= @solved_count %></span>
+  </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="filter-bar">
+  <%= form_with url: detections_path, method: :get, local: true, class: "filter-inputs" do |f| %>
+    <%= f.text_field :query, value: params[:query], placeholder: "Search process, host, title...", class: "input-control", style: "width: 260px;" %>
+    
+    <%= f.select :severity, 
+      options_for_select([["All Severities", "all"], ["Critical", "critical"], ["High", "high"], ["Medium", "medium"], ["Low", "low"]], params[:severity]), 
+      {}, class: "input-control" %>
+
+    <%= f.select :status, 
+      options_for_select([["All Statuses", "all"], ["New", "new"], ["Open", "open"], ["Investigating", "investigating"], ["Pending Review", "pending_review"], ["Solved", "solved"], ["Reopened", "reopened"]], params[:status]), 
+      {}, class: "input-control" %>
+
+    <%= f.select :sla_risk, 
+      options_for_select([["All SLA Statuses", ""], ["At SLA Risk Only", "true"]], params[:sla_risk]), 
+      {}, class: "input-control" %>
+
+    <%= f.submit "Filter", class: "btn btn-secondary" %>
+    <% if params[:query].present? || (params[:severity].present? && params[:severity] != "all") || (params[:status].present? && params[:status] != "all") || params[:sla_risk].present? %>
+      <%= link_to "Clear", detections_path, class: "btn btn-secondary", style: "color: #94a3b8;" %>
+    <% end %>
+  <% end %>
+
+  <div>
+    <%= button_to check_sla_detections_path, method: :post, class: "btn btn-secondary" do %>
+      Evaluate 15-Minute SLAs
+    <% end %>
+  </div>
+</div>
+
+<!-- Detections Table -->
+<div class="table-container">
+  <% if @detections.any? %>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Severity</th>
+          <th>Detection & Process</th>
+          <th>Endpoint / User</th>
+          <th>Status</th>
+          <th>Triggered At</th>
+          <th>SLA Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @detections.each do |det| %>
+          <tr>
+            <td>
+              <span class="badge badge-<%= det.severity %>"><%= det.severity %></span>
+            </td>
+            <td>
+              <span class="cell-title"><%= link_to det.title, detection_path(det) %></span>
+              <span class="cell-meta">
+                <%= det.process_name || "Unknown" %>
+                <% if det.process_id %> (PID: <%= det.process_id %>)<% end %>
+                <% if det.parent_process_name %> &larr; <%= det.parent_process_name %><% end %>
+              </span>
+            </td>
+            <td>
+              <div style="font-weight: 500; color: #e2e8f0;"><%= det.hostname %></div>
+              <span class="cell-meta"><%= det.username || "SYSTEM" %> (<%= det.ip_address || "N/A" %>)</span>
+            </td>
+            <td>
+              <span class="badge badge-status-<%= det.status %>"><%= det.status.humanize %></span>
+            </td>
+            <td>
+              <span style="font-family: var(--font-mono); font-size: 0.8rem;">
+                <%= time_ago_in_words(det.triggered_at) %> ago
+              </span>
+            </td>
+            <td>
+              <% if det.sla_risk? %>
+                <span class="badge badge-sla-risk">At Risk (>15m)</span>
+              <% elsif det.status.in?(%w[investigating pending_review solved]) %>
+                <span style="color: #34d399; font-size: 0.75rem; font-weight: 600;">Met / In Progress</span>
+              <% else %>
+                <span style="color: #94a3b8; font-size: 0.75rem;">Healthy</span>
+              <% end %>
+            </td>
+            <td>
+              <%= link_to "Investigate", detection_path(det), class: "btn btn-secondary", style: "padding: 0.35rem 0.75rem; font-size: 0.8rem;" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <div style="padding: 4rem 2rem; text-align: center; color: var(--text-muted);">
+      <h3 style="color: var(--text-secondary); margin-bottom: 0.5rem;">No detections found matching current filters</h3>
+      <p style="font-size: 0.85rem; margin-bottom: 1.5rem;">Try adjusting search terms or clearing severity filters.</p>
+      <%= link_to "Reset Filters", detections_path, class: "btn btn-secondary" %>
+    </div>
+  <% end %>
+</div>

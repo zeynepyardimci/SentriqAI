@@ -1,0 +1,46 @@
+<% content_for :title, "Knowledge Base Runbooks & MITRE Techniques | Sentriq AI" %>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+  <div>
+    <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">Knowledge Base Runbooks</h1>
+    <p style="color: var(--text-secondary); font-size: 0.9rem;">Verified incident response playbooks and MITRE ATT&CK reference documents used by the RAG search layer.</p>
+  </div>
+</div>
+
+<div class="table-container">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Reference ID</th>
+        <th>Document Title</th>
+        <th>Indexed Chunks</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @documents.each do |doc| %>
+        <tr>
+          <td>
+            <span class="badge badge-medium"><%= doc.category.humanize %></span>
+          </td>
+          <td>
+            <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--cyan-primary);">
+              <%= doc.external_reference || "N/A" %>
+            </span>
+          </td>
+          <td>
+            <span class="cell-title"><%= link_to doc.title, knowledge_document_path(doc) %></span>
+            <span class="cell-meta"><%= doc.content.truncate(110) %></span>
+          </td>
+          <td>
+            <span style="font-family: var(--font-mono); font-size: 0.85rem;"><%= doc.knowledge_chunks.count %> chunks</span>
+          </td>
+          <td>
+            <%= link_to "View Runbook", knowledge_document_path(doc), class: "btn btn-secondary", style: "padding: 0.35rem 0.75rem; font-size: 0.8rem;" %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
