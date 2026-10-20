@@ -1,0 +1,20 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  host: <%= ENV.fetch("DB_HOST", "127.0.0.1") %>
+  username: <%= ENV.fetch("DB_USER", "postgres") %>
+  password: <%= ENV.fetch("DB_PASSWORD", "postgres") %>
+  port: <%= ENV.fetch("DB_PORT", 5434) %>
+  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+
+development:
+  <<: *default
+  database: <%= ENV.fetch("DB_NAME", "sentriq_ai_development") %>
+
+test:
+  <<: *default
+  database: sentriq_ai_test
+
+production:
+  <<: *default
+  url: <%= ENV["DATABASE_URL"] %>
