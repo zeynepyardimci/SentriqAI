@@ -34,6 +34,7 @@ Rails.application.routes.draw do
   # Page-Agent In-Page GUI & Ragie RAG Endpoints
   post "page_agent/execute", to: "page_agent#execute"
   post "page_agent/ragie_search", to: "page_agent#ragie_search"
+  post "page_agent/set_api_key", to: "page_agent#set_api_key"
 
   # Agent-First REST API v1
   namespace :api do

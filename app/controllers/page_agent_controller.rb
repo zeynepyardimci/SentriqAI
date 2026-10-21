@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class PageAgentController < ApplicationController
-  protect_from_forgery except: [:execute, :ragie_search]
+  protect_from_forgery except: [:execute, :ragie_search, :set_api_key]
 
   # POST /page_agent/execute
   def execute
@@ -35,5 +35,34 @@ class PageAgentController < ApplicationController
     result = RagieRetrievalService.new(query, limit: limit).call
 
     render json: result, status: :ok
+  end
+
+  # POST /page_agent/set_api_key
+  def set_api_key
+    key = params[:api_key].to_s.strip
+    provider = params[:provider].to_s.presence || "auto"
+
+    if key.blank?
+      render json: { success: false, error: "API anahtarı boş olamaz" }, status: :unprocessable_entity
+      return
+    end
+
+    if key.start_with?("gsk_") || provider == "groq"
+      ENV["GROQ_API_KEY"] = key
+      provider_name = "Groq Live (Llama 3.3 70B)"
+    elsif key.start_with?("xai-") || provider == "grok"
+      ENV["GROK_API_KEY"] = key
+      provider_name = "Grok (xAI Live)"
+    else
+      # Default to Groq if key format unknown or user specifies
+      ENV["GROQ_API_KEY"] = key
+      provider_name = "Groq / OpenAI-compatible Live"
+    end
+
+    render json: {
+      success: true,
+      message: "#{provider_name} başarıyla etkinleştirildi!",
+      provider: provider_name
+    }, status: :ok
   end
 end

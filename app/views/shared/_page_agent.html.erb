@@ -1,74 +1,111 @@
-<!-- Sentriq In-Page Autonomous Agent — Auto-executes, surfaces only when human input needed -->
+<!-- Sentriq In-Page Autonomous Agent — Alibaba Page-Agent Architecture & Ragie RAG -->
 
-<!-- ── Floating Status Orb (always visible, minimal) ──────────────────────── -->
-<div id="pa-orb" title="Sentriq Autonomous Agent" onclick="paTogglePanel()" style="
+<!-- ── Floating Status Orb ─────────────────────────────────────────────── -->
+<div id="pa-orb" title="Sentriq Autonomous Agent (Alibaba Page-Agent Mantığı)" onclick="paTogglePanel()" style="
   position: fixed; bottom: 22px; right: 22px; z-index: 9999;
-  width: 52px; height: 52px; border-radius: 50%;
+  width: 54px; height: 54px; border-radius: 50%;
   background: linear-gradient(135deg, #06b6d4, #8b5cf6);
   box-shadow: 0 0 0 0 rgba(6,182,212,0.6);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: transform 0.2s;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
   animation: pa-idle-pulse 3s ease-in-out infinite;
 ">
-  <span id="pa-orb-icon" style="font-size: 1.4rem; line-height: 1;">🤖</span>
+  <span id="pa-orb-icon" style="font-size: 1.45rem; line-height: 1;">🤖</span>
 </div>
 
-<!-- ── Toast notification (non-intrusive result alert) ──────────────────── -->
+<!-- ── Toast notification ──────────────────────────────────────────────── -->
 <div id="pa-toast" style="
-  position: fixed; bottom: 86px; right: 22px; z-index: 9998;
+  position: fixed; bottom: 88px; right: 22px; z-index: 9998;
   background: rgba(10,20,40,0.97); border: 1px solid rgba(6,182,212,0.5);
-  border-radius: 10px; padding: 0.75rem 1rem; width: 320px;
+  border-radius: 10px; padding: 0.75rem 1rem; width: 330px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: none;
   font-family: system-ui, sans-serif; font-size: 0.82rem; color: #e2e8f0;
   animation: pa-slide-in 0.3s ease;
 ">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-    <strong id="pa-toast-title" style="color:#34d399;">🤖 Agent Raporu</strong>
+    <strong id="pa-toast-title" style="color:#34d399;">🤖 Alibaba Page-Agent Raporu</strong>
     <button onclick="document.getElementById('pa-toast').style.display='none'" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:1rem;">✕</button>
   </div>
   <div id="pa-toast-body" style="color:#94a3b8; line-height:1.4;"></div>
-  <div id="pa-toast-actions" style="margin-top:0.5rem; display:flex; gap:0.5rem;"></div>
+  <div id="pa-toast-actions" style="margin-top:0.55rem; display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
 </div>
 
-<!-- ── Full Panel (opens only when human needed OR user clicks orb) ──────── -->
+<!-- ── Full Drawer Panel ───────────────────────────────────────────────── -->
 <div id="pa-panel" style="
   position: fixed; bottom: 84px; right: 22px; z-index: 9998;
-  width: 420px; max-width: 92vw; max-height: 80vh;
-  background: rgba(10, 18, 36, 0.97); backdrop-filter: blur(18px);
-  border: 1px solid rgba(6,182,212,0.4); border-radius: 14px;
-  box-shadow: 0 25px 60px -10px rgba(0,0,0,0.75);
+  width: 440px; max-width: 94vw; max-height: 84vh;
+  background: rgba(10, 18, 36, 0.98); backdrop-filter: blur(20px);
+  border: 1px solid rgba(6,182,212,0.45); border-radius: 14px;
+  box-shadow: 0 25px 65px -10px rgba(0,0,0,0.8);
   display: none; flex-direction: column; overflow: hidden;
-  font-family: system-ui, sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
 ">
   <!-- Panel Header -->
-  <div style="background: linear-gradient(90deg, rgba(6,182,212,0.18), rgba(139,92,246,0.18)); padding: 0.8rem 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
-    <div style="display:flex; align-items:center; gap:0.5rem;">
-      <span style="font-size:1.2rem;">🤖</span>
+  <div style="background: linear-gradient(90deg, rgba(6,182,212,0.2), rgba(139,92,246,0.2)); padding: 0.8rem 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; align-items:center; gap:0.55rem;">
+      <span style="font-size:1.3rem;">🤖</span>
       <div>
-        <div style="font-weight:700; font-size:0.9rem; color:#38bdf8; display:flex; align-items:center; gap:0.4rem;">
+        <div style="font-weight:700; font-size:0.92rem; color:#38bdf8; display:flex; align-items:center; gap:0.4rem;">
           SENTRIQ AGENT
-          <span id="pa-panel-mode-badge" style="font-size:0.6rem; background:rgba(16,185,129,0.2); color:#34d399; border:1px solid #10b981; padding:0.1rem 0.4rem; border-radius:4px;">OTONOM</span>
+          <span id="pa-panel-mode-badge" style="font-size:0.6rem; background:rgba(16,185,129,0.2); color:#34d399; border:1px solid #10b981; padding:0.1rem 0.4rem; border-radius:4px; font-weight:700;">OTONOM</span>
         </div>
-        <div style="font-size:0.68rem; color:#64748b;">Autonomous Observer • Ragie RAG • Re-Act Loop</div>
+        <div style="font-size:0.68rem; color:#94a3b8;">Alibaba Page-Agent DOM Inspector • Ragie RAG • ReAct</div>
       </div>
     </div>
-    <button onclick="paTogglePanel()" style="background:none;border:none;color:#475569;font-size:1.2rem;cursor:pointer;">&times;</button>
+    <div style="display:flex; align-items:center; gap:0.4rem;">
+      <button onclick="paToggleApiSettings()" title="API Ayarları (Ücretsiz Groq / Grok)" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#cbd5e1; border-radius:5px; padding:0.25rem 0.5rem; font-size:0.7rem; cursor:pointer;">🔑 API Key</button>
+      <button onclick="paTogglePanel()" style="background:none;border:none;color:#64748b;font-size:1.3rem;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+  </div>
+
+  <!-- API Key Setting Drawer (Collapsible) -->
+  <div id="pa-api-drawer" style="display:none; background:rgba(15,23,42,0.95); border-bottom:1px solid rgba(6,182,212,0.3); padding:0.75rem 1.1rem;">
+    <div style="font-size:0.74rem; font-weight:600; color:#38bdf8; margin-bottom:0.35rem;">
+      ⚡ Canlı LLM Motoru Yapılandırması:
+    </div>
+    <div style="font-size:0.69rem; color:#94a3b8; margin-bottom:0.5rem; line-height:1.4;">
+      Ücretsiz <strong>Groq API</strong> (<a href="https://console.groq.com/keys" target="_blank" style="color:#22d3ee; text-decoration:underline;">console.groq.com/keys</a> — Kredi kartı istemez, 30 sn'de Llama 3.3 70B verir) veya <strong>Grok (xAI)</strong> key'inizi girin:
+    </div>
+    <form onsubmit="paSaveApiKey(event)" style="display:flex; gap:0.4rem;">
+      <input id="pa-api-key-input" type="password" placeholder="gsk_... veya xai-..." style="flex:1; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:0.4rem 0.6rem; color:#fff; font-size:0.72rem; outline:none;">
+      <button type="submit" id="pa-save-key-btn" style="background:#06b6d4; color:#000; border:none; border-radius:6px; padding:0.4rem 0.75rem; font-weight:600; font-size:0.72rem; cursor:pointer;">Kaydet</button>
+    </form>
+    <div id="pa-api-status" style="font-size:0.68rem; margin-top:0.35rem; display:none;"></div>
   </div>
 
   <!-- Engine status bar -->
-  <div style="display:flex; gap:0.75rem; padding:0.45rem 1.1rem; background:rgba(0,0,0,0.35); border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.68rem; color:#64748b;">
-    <span>LLM: <strong style="color:#a78bfa;"><%= ENV["GROK_API_KEY"].present? ? "Grok xAI" : "Local Engine" %></strong></span>
+  <div style="display:flex; gap:0.6rem; padding:0.45rem 1.1rem; background:rgba(0,0,0,0.35); border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.68rem; color:#64748b; flex-wrap:wrap;">
+    <span>LLM: <strong id="pa-llm-label" style="color:#a78bfa;"><%= ENV["GROQ_API_KEY"].present? ? "Groq (Llama 3.3)" : (ENV["GROK_API_KEY"].present? ? "Grok xAI" : "Contextual Local Engine") %></strong></span>
     <span>•</span>
-    <span>RAG: <strong style="color:#22d3ee;"><%= ENV["RAGIE_API_KEY"].present? ? "Ragie.ai Cloud" : "Ragie Local" %></strong></span>
+    <span>RAG: <strong style="color:#22d3ee;"><%= ENV["RAGIE_API_KEY"].present? ? "Ragie.ai Cloud" : "Ragie Local Runbook" %></strong></span>
     <span>•</span>
-    <span id="pa-run-count" style="color:#475569;">0 otomatik çalışma</span>
+    <span id="pa-run-count" style="color:#94a3b8;">0 otomatik çalışma</span>
   </div>
 
-  <!-- Scrollable log + human chat area -->
-  <div id="pa-panel-body" style="flex:1; overflow-y:auto; padding:0.85rem 1.1rem; display:flex; flex-direction:column; gap:0.6rem; min-height: 180px;">
-    <div id="pa-panel-log" style="display:flex; flex-direction:column; gap:0.35rem; font-size:0.75rem; font-family:monospace; color:#94a3b8;"></div>
+  <!-- Scrollable log + result area -->
+  <div id="pa-panel-body" style="flex:1; overflow-y:auto; padding:0.85rem 1.1rem; display:flex; flex-direction:column; gap:0.6rem; min-height: 200px; max-height:360px;">
+    <div id="pa-panel-log" style="display:flex; flex-direction:column; gap:0.38rem; font-size:0.74rem; font-family:monospace; color:#94a3b8;"></div>
 
-    <!-- Human-input chat (only shown when agent needs human) -->
+    <!-- Alibaba Page-Agent Result Card (Injected after run) -->
+    <div id="pa-result-card" style="display:none; background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.35); border-radius:8px; padding:0.75rem; font-size:0.75rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.3rem;">
+        <span style="font-weight:700; color:#34d399; display:flex; align-items:center; gap:0.3rem;">
+          <span>✅</span> Alibaba Page-Agent Triage Tamamlandı
+        </span>
+        <span id="pa-result-tag" style="background:rgba(16,185,129,0.2); color:#34d399; padding:0.1rem 0.35rem; border-radius:4px; font-size:0.65rem;">Sıfır İnsan Müdahalesi</span>
+      </div>
+      <div id="pa-result-desc" style="color:#cbd5e1; line-height:1.4; margin-bottom:0.5rem;"></div>
+      <div style="display:flex; gap:0.5rem;">
+        <a id="pa-result-ticket-link" href="#" style="background:#06b6d4; color:#000; font-weight:700; padding:0.35rem 0.75rem; border-radius:5px; text-decoration:none; font-size:0.72rem; display:inline-flex; align-items:center; gap:0.3rem;">
+          🎫 Bilet Raporunu Aç →
+        </a>
+        <button onclick="paHighlightCurrentTarget()" style="background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.15); padding:0.35rem 0.7rem; border-radius:5px; font-size:0.72rem; cursor:pointer;">
+          🎯 Sayfada Vurgula
+        </button>
+      </div>
+    </div>
+
+    <!-- Human-input chat (only shown when agent asks human) -->
     <div id="pa-human-chat" style="display:none; margin-top:0.5rem;">
       <div style="font-size:0.7rem; font-weight:600; color:#f59e0b; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.35rem;">
         <span style="animation: pa-blink 1s step-end infinite;">🟡</span>
@@ -82,10 +119,27 @@
     </div>
   </div>
 
-  <!-- Manual trigger row (for additional instructions) -->
-  <div style="padding:0.7rem 1.1rem; background:rgba(0,0,0,0.35); border-top:1px solid rgba(255,255,255,0.07); display:flex; gap:0.4rem;">
-    <input id="pa-manual-input" type="text" placeholder="Ek talimat ver veya soru sor..." style="flex:1; background:rgba(15,23,42,0.8); border:1px solid rgba(255,255,255,0.12); border-radius:6px; padding:0.45rem 0.7rem; color:#fff; font-size:0.78rem; outline:none;">
-    <button onclick="paManualRun()" style="background:#06b6d4; color:#000; border:none; border-radius:6px; padding:0.45rem 0.9rem; font-weight:600; font-size:0.78rem; cursor:pointer;">▶ Çalıştır</button>
+  <!-- Quick Prompts / Instruction Hints (Ne yazabilirim?) -->
+  <div style="padding:0.45rem 1.1rem; background:rgba(15,23,42,0.6); border-top:1px solid rgba(255,255,255,0.06);">
+    <div style="font-size:0.66rem; color:#94a3b8; margin-bottom:0.3rem; display:flex; align-items:center; gap:0.3rem;">
+      <span>💡</span> Hızlı Örnek Talimatlar (tıkla & çalıştır):
+    </div>
+    <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+      <button onclick="paUseQuickPrompt('Ransomware tespitini izole et ve containment uygula')" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; border-radius:4px; padding:0.2rem 0.45rem; font-size:0.67rem; cursor:pointer;">⚡ Ransomware İzole Et</button>
+      <button onclick="paUseQuickPrompt('Kritik tehditleri Ragie runbook ile analiz et ve bilet aç')" style="background:rgba(6,182,212,0.15); border:1px solid rgba(6,182,212,0.4); color:#67e8f9; border-radius:4px; padding:0.2rem 0.45rem; font-size:0.67rem; cursor:pointer;">🛡️ Ragie Runbook Triage</button>
+      <button onclick="paUseQuickPrompt('Sayfadaki DOM elemanlarını tara ve karantina aksiyonu al')" style="background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.4); color:#d8b4fe; border-radius:4px; padding:0.2rem 0.45rem; font-size:0.67rem; cursor:pointer;">👁️ Alibaba DOM Tara</button>
+      <button onclick="paUseQuickPrompt('SOC vardiya devir raporu hazırla')" style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); color:#6ee7b7; border-radius:4px; padding:0.2rem 0.45rem; font-size:0.67rem; cursor:pointer;">📋 SOC Raporu</button>
+    </div>
+  </div>
+
+  <!-- Manual trigger row (Form with ENTER support) -->
+  <div style="padding:0.7rem 1.1rem; background:rgba(0,0,0,0.4); border-top:1px solid rgba(255,255,255,0.08);">
+    <form id="pa-manual-form" onsubmit="paManualSubmit(event)" style="display:flex; gap:0.4rem; width:100%; margin:0;">
+      <input id="pa-manual-input" type="text" placeholder="Ek talimat ver (Enter veya Çalıştır)..." style="flex:1; background:rgba(15,23,42,0.85); border:1px solid rgba(255,255,255,0.15); border-radius:6px; padding:0.48rem 0.75rem; color:#fff; font-size:0.78rem; outline:none;">
+      <button id="pa-run-btn" type="submit" style="background:#06b6d4; color:#000; border:none; border-radius:6px; padding:0.48rem 0.95rem; font-weight:700; font-size:0.78rem; cursor:pointer; display:flex; align-items:center; gap:0.3rem; white-space:nowrap;">
+        <span>▶</span> <span>Çalıştır</span>
+      </button>
+    </form>
   </div>
 </div>
 
@@ -105,7 +159,50 @@
 @keyframes pa-blink {
   0%,100% { opacity:1; } 50% { opacity:0.2; }
 }
-#pa-orb:hover { transform: scale(1.1); }
+@keyframes pa-neon-target {
+  0%, 100% { box-shadow: 0 0 16px rgba(250,204,21,0.9), inset 0 0 8px rgba(250,204,21,0.3); }
+  50% { box-shadow: 0 0 28px rgba(250,204,21,1), inset 0 0 14px rgba(250,204,21,0.5); }
+}
+@keyframes pa-neon-success {
+  0%, 100% { box-shadow: 0 0 16px rgba(16,185,129,0.9), inset 0 0 8px rgba(16,185,129,0.3); }
+  50% { box-shadow: 0 0 28px rgba(16,185,129,1), inset 0 0 14px rgba(16,185,129,0.5); }
+}
+
+.pa-alibaba-targeted {
+  outline: 3px solid #facc15 !important;
+  outline-offset: 2px !important;
+  animation: pa-neon-target 1.2s ease-in-out infinite !important;
+  position: relative !important;
+  transition: all 0.3s ease !important;
+}
+
+.pa-alibaba-resolved {
+  outline: 3px solid #10b981 !important;
+  outline-offset: 2px !important;
+  animation: pa-neon-success 2s ease-in-out infinite !important;
+  position: relative !important;
+  transition: all 0.3s ease !important;
+}
+
+.pa-floating-badge {
+  position: absolute;
+  top: -12px;
+  left: 12px;
+  z-index: 99;
+  background: #facc15;
+  color: #000;
+  font-weight: 800;
+  font-size: 0.68rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: monospace;
+}
+
+#pa-orb:hover { transform: scale(1.08); }
 #pa-orb.working {
   background: linear-gradient(135deg, #facc15, #f97316);
   animation: pa-working-pulse 1.2s ease-in-out infinite;
@@ -128,23 +225,26 @@
   let paHumanConversation = [];
   let paPollingTimer = null;
   let paCurrentTicketUrl = null;
-  const PA_POLL_INTERVAL_MS = 60000; // re-check every 60 s
-  const PA_BOOT_DELAY_MS   = 2500;  // wait 2.5s after page load
+  let paLastTargetSelector = null;
+  const PA_POLL_INTERVAL_MS = 60000;
+  const PA_BOOT_DELAY_MS   = 2500;
 
   // ── Bootstrap: auto-start after page ready ───────────────────────────────
   document.addEventListener("DOMContentLoaded", function() {
-    paAppendPanelLog("sys", "Agent başlatıldı — sayfa taranıyor...");
+    paAppendPanelLog("sys", "Alibaba Page-Agent Motoru Hazır — DOM Taranıyor...");
     setTimeout(paAutoRun, PA_BOOT_DELAY_MS);
   });
 
-  // ── Auto-run entry point ─────────────────────────────────────────────────
+  // ── Auto-run / Execution entry point ─────────────────────────────────────
   function paAutoRun(customInstruction) {
     const instruction = customInstruction ||
       "Bu sayfayı otomatik tara, aktif güvenlik tespitlerini bul, Ragie RAG ile runbook çek, ticket aç ve sıfır insan müdahalesiyle raporla";
+
     paSetOrbState("working");
+    paSetButtonLoading(true);
     paRunCount++;
     document.getElementById("pa-run-count").innerText = paRunCount + " otomatik çalışma";
-    paAppendPanelLog("observe", "DOM gözlemleniyor — URL: " + window.location.pathname);
+    paAppendPanelLog("observe", "Alibaba Page-Agent DOM İncelemesi Başladı — URL: " + window.location.pathname);
 
     const ctx = paGetContext();
 
@@ -162,14 +262,55 @@
       })
     })
     .then(function(r) { return r.json(); })
-    .then(function(data) { paHandleResult(data); })
-    .catch(function(err) { paHandleError(err.message); });
+    .then(function(data) {
+      paSetButtonLoading(false);
+      paHandleResult(data);
+    })
+    .catch(function(err) {
+      paSetButtonLoading(false);
+      paHandleError(err.message);
+    });
   }
   window.paAutoRun = paAutoRun;
 
+  // ── Manual Run & Enter Form Handler ──────────────────────────────────────
+  function paManualSubmit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const input = document.getElementById("pa-manual-input");
+    const val = input.value.trim();
+    if (!val) {
+      input.focus();
+      return;
+    }
+    input.value = "";
+    paAppendPanelLog("sys", "Kullanıcı Talimatı: '" + val + "'");
+    paAutoRun(val);
+  }
+  window.paManualSubmit = paManualSubmit;
+
+  function paUseQuickPrompt(text) {
+    const input = document.getElementById("pa-manual-input");
+    input.value = text;
+    paManualSubmit();
+  }
+  window.paUseQuickPrompt = paUseQuickPrompt;
+
+  function paSetButtonLoading(loading) {
+    const btn = document.getElementById("pa-run-btn");
+    if (!btn) return;
+    if (loading) {
+      btn.disabled = true;
+      btn.style.opacity = "0.7";
+      btn.innerHTML = "<span>⏳</span> <span>İnceliyor...</span>";
+    } else {
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      btn.innerHTML = "<span>▶</span> <span>Çalıştır</span>";
+    }
+  }
+
   // ── Result handler ───────────────────────────────────────────────────────
   function paHandleResult(data) {
-    // render steps into panel log
     if (data.steps && data.steps.length) {
       data.steps.forEach(function(s) {
         paAppendPanelLog(s.phase, s.message);
@@ -178,18 +319,41 @@
 
     if (data.success && data.ticket) {
       paCurrentTicketUrl = data.ticket.url;
+      paLastTargetSelector = data.target_selector;
       paSetOrbState("done");
+
+      // 1. Apply Alibaba Page-Agent Visual Highlighting to DOM Element
+      if (data.dom_actions && data.dom_actions.length) {
+        paExecuteAlibabaDomActions(data.dom_actions, data.ticket);
+      } else if (data.target_selector) {
+        paHighlightTargetElement(data.target_selector, data.ticket);
+      }
+
+      // 2. Render Result Card inside Panel
+      const card = document.getElementById("pa-result-card");
+      const desc = document.getElementById("pa-result-desc");
+      const link = document.getElementById("pa-result-ticket-link");
+      desc.innerHTML = "<strong>" + escHtml(data.ticket.ticket_number) + "</strong> — " + escHtml(data.ticket.title) +
+                       "<br><span style='color:#94a3b8; font-size:0.7rem;'>Ragie Runbook: " + (data.ragie_provider || "Local") + " • Aksiyon: Otomatik Containment (Zero Human Touch)</span>";
+      link.href = data.ticket.url;
+      card.style.display = "block";
+      document.getElementById("pa-panel-body").scrollTop = document.getElementById("pa-panel-body").scrollHeight;
+
+      // 3. Show Toast Alert
       paShowToast(
-        "✅ Ticket Oluşturuldu",
-        data.ticket.ticket_number + " — Ragie [" + (data.ragie_provider || "local") + "] runbook bağlandı. Sıfır insan müdahalesi.",
-        [{ label: "Raporu Gör →", href: data.ticket.url }]
+        "✅ Alibaba Page-Agent: Bilet Açıldı",
+        data.ticket.ticket_number + " — Sıfır İnsan Müdahalesi ile çözüldü.",
+        [
+          { label: "Bileti Gör →", href: data.ticket.url },
+          { label: "Sayfada Vurgula", onclick: "paHighlightCurrentTarget()" }
+        ]
       );
+
       // schedule next polling cycle
       clearTimeout(paPollingTimer);
       paPollingTimer = setTimeout(paAutoRun, PA_POLL_INTERVAL_MS);
 
     } else if (!data.success && data.needs_human) {
-      // Agent explicitly requests human input
       paSetOrbState("waiting-human");
       paHumanNeeded = true;
       paOpenPanelForHuman(data.human_question || "Agent sizin görüşünüzü istiyor.");
@@ -200,12 +364,121 @@
   }
 
   function paHandleError(msg) {
-    paSetOrbState("done"); // fallback to idle
+    paSetOrbState("done");
     paAppendPanelLog("error", "Hata: " + msg);
     paShowToast("⚠️ Agent Uyarısı", msg, []);
     clearTimeout(paPollingTimer);
     paPollingTimer = setTimeout(paAutoRun, PA_POLL_INTERVAL_MS);
   }
+
+  // ── Alibaba Page-Agent Visual DOM Highlighting ───────────────────────────
+  function paExecuteAlibabaDomActions(actions, ticket) {
+    actions.forEach(function(action, idx) {
+      setTimeout(function() {
+        const el = document.querySelector(action.selector);
+        if (!el) return;
+
+        // Smooth scroll to target element
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // Remove old badges
+        const oldBadge = el.querySelector(".pa-floating-badge");
+        if (oldBadge) oldBadge.remove();
+
+        if (action.type === "perceive_and_highlight") {
+          el.classList.remove("pa-alibaba-resolved");
+          el.classList.add("pa-alibaba-targeted");
+
+          const badge = document.createElement("div");
+          badge.className = "pa-floating-badge";
+          badge.innerHTML = "🎯 ALIBABA PAGE-AGENT: DOM HEDEFİ";
+          el.appendChild(badge);
+
+        } else if (action.type === "execute_containment") {
+          el.classList.remove("pa-alibaba-targeted");
+          el.classList.add("pa-alibaba-resolved");
+
+          const badge = document.createElement("div");
+          badge.className = "pa-floating-badge";
+          badge.style.background = "#10b981";
+          badge.style.color = "#000";
+          badge.innerHTML = "✅ ZERO-TOUCH CONTAINED (" + ticket.ticket_number + ")";
+          el.appendChild(badge);
+
+          // Return to normal after 8 seconds
+          setTimeout(function() {
+            el.classList.remove("pa-alibaba-resolved");
+            const b = el.querySelector(".pa-floating-badge");
+            if (b) b.remove();
+          }, 8000);
+        }
+      }, idx * 1200);
+    });
+  }
+
+  function paHighlightTargetElement(selector, ticket) {
+    paExecuteAlibabaDomActions([
+      { type: "perceive_and_highlight", selector: selector },
+      { type: "execute_containment", selector: selector }
+    ], ticket);
+  }
+
+  function paHighlightCurrentTarget() {
+    if (paLastTargetSelector) {
+      const el = document.querySelector(paLastTargetSelector);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("pa-alibaba-targeted");
+        setTimeout(function() { el.classList.remove("pa-alibaba-targeted"); }, 3000);
+      }
+    }
+  }
+  window.paHighlightCurrentTarget = paHighlightCurrentTarget;
+
+  // ── API Key Management ───────────────────────────────────────────────────
+  function paToggleApiSettings() {
+    const drawer = document.getElementById("pa-api-drawer");
+    drawer.style.display = (drawer.style.display === "none" || !drawer.style.display) ? "block" : "none";
+  }
+  window.paToggleApiSettings = paToggleApiSettings;
+
+  function paSaveApiKey(e) {
+    e.preventDefault();
+    const input = document.getElementById("pa-api-key-input");
+    const val = input.value.trim();
+    const status = document.getElementById("pa-api-status");
+    if (!val) return;
+
+    fetch("/page_agent/set_api_key", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": (document.querySelector('meta[name="csrf-token"]') || {}).content || ""
+      },
+      body: JSON.stringify({ api_key: val })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      status.style.display = "block";
+      if (d.success) {
+        status.style.color = "#34d399";
+        status.innerText = "✅ " + d.message;
+        document.getElementById("pa-llm-label").innerText = d.provider;
+        setTimeout(function() {
+          document.getElementById("pa-api-drawer").style.display = "none";
+        }, 1500);
+      } else {
+        status.style.color = "#ef4444";
+        status.innerText = "❌ " + (d.error || "Kaydedilemedi");
+      }
+    })
+    .catch(function(err) {
+      status.style.display = "block";
+      status.style.color = "#ef4444";
+      status.innerText = "❌ Hata: " + err.message;
+    });
+  }
+  window.paSaveApiKey = paSaveApiKey;
 
   // ── Human chat (agent asks → human replies) ──────────────────────────────
   function paOpenPanelForHuman(question) {
@@ -229,7 +502,6 @@
     paHumanConversation.push({ role: "human", text: val });
     paHumanNeeded = false;
     document.getElementById("pa-human-chat").style.display = "none";
-    // Re-run with human reply as context
     paAutoRun("İnsan geri bildirimi: " + val + ". Bu bilgi ışığında analizi tamamla ve sıfır ek insan müdahalesiyle raporla.");
   }
   window.paHumanReply = paHumanReply;
@@ -245,16 +517,7 @@
     box.scrollTop = box.scrollHeight;
   }
 
-  // ── Manual run from panel input ──────────────────────────────────────────
-  function paManualRun() {
-    const input = document.getElementById("pa-manual-input");
-    const val = input.value.trim();
-    input.value = "";
-    paAutoRun(val || undefined);
-  }
-  window.paManualRun = paManualRun;
-
-  // ── Panel toggle (only via orb click) ────────────────────────────────────
+  // ── Panel toggle ─────────────────────────────────────────────────────────
   function paTogglePanel() {
     const panel = document.getElementById("pa-panel");
     const toast  = document.getElementById("pa-toast");
@@ -273,14 +536,13 @@
     (actions || []).forEach(function(a) {
       const btn = document.createElement("a");
       btn.innerText = a.label;
-      btn.style.cssText = "background:#06b6d4; color:#000; border-radius:5px; padding:0.3rem 0.7rem; font-size:0.72rem; font-weight:600; text-decoration:none; cursor:pointer;";
+      btn.style.cssText = "background:#06b6d4; color:#000; border-radius:5px; padding:0.3rem 0.65rem; font-size:0.72rem; font-weight:700; text-decoration:none; cursor:pointer;";
       if (a.href)    btn.href = a.href;
       if (a.onclick) btn.setAttribute("onclick", a.onclick);
       actionsEl.appendChild(btn);
     });
     const toast = document.getElementById("pa-toast");
     toast.style.display = "block";
-    // auto-hide after 8 s (unless human needed)
     if (!paHumanNeeded) {
       setTimeout(function() { toast.style.display = "none"; }, 8000);
     }

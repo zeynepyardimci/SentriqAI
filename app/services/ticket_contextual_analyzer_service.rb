@@ -92,7 +92,11 @@ class TicketContextualAnalyzerService
   private
 
   def live_api_configured?
-    grok_configured? || ENV["OPENAI_API_KEY"].present? || ENV["GEMINI_API_KEY"].present?
+    groq_configured? || grok_configured? || ENV["OPENAI_API_KEY"].present? || ENV["GEMINI_API_KEY"].present?
+  end
+
+  def groq_configured?
+    ENV["GROQ_API_KEY"].present?
   end
 
   def grok_configured?
@@ -100,7 +104,9 @@ class TicketContextualAnalyzerService
   end
 
   def request_live_llm(rag_results)
-    if grok_configured?
+    if groq_configured?
+      request_groq(rag_results)
+    elsif grok_configured?
       request_grok(rag_results)
     elsif ENV["OPENAI_API_KEY"].present?
       request_openai(rag_results)
@@ -109,6 +115,38 @@ class TicketContextualAnalyzerService
     else
       raise "No LLM provider configured"
     end
+  end
+
+  def request_groq(rag_results)
+    api_key = ENV["GROQ_API_KEY"]
+    model = ENV.fetch("GROQ_MODEL", "llama-3.3-70b-versatile")
+    uri = URI.parse("https://api.groq.com/openai/v1/chat/completions")
+
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true
+    http.read_timeout = 25
+
+    prompt = build_prompt(rag_results)
+
+    request = Net::HTTP::Post.new(uri.request_uri)
+    request["Authorization"] = "Bearer #{api_key}"
+    request["Content-Type"] = "application/json"
+    request.body = {
+      model: model,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: system_instruction },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.1
+    }.to_json
+
+    response = http.request(request)
+    raise "Groq API returned HTTP #{response.code}: #{response.body}" unless response.is_a?(Net::HTTPSuccess)
+
+    parsed = JSON.parse(response.body)
+    content = parsed.dig("choices", 0, "message", "content")
+    JSON.parse(content)
   end
 
   def request_grok(rag_results)

@@ -67,7 +67,7 @@
       </thead>
       <tbody>
         <% @detections.each do |det| %>
-          <tr>
+          <tr id="detection-row-<%= det.id %>" class="detection-row" data-detection-id="<%= det.id %>" data-severity="<%= det.severity %>">
             <td>
               <span class="badge badge-<%= det.severity %>"><%= det.severity %></span>
             </td>

@@ -113,6 +113,8 @@ class PageAgentService
         url: "/tickets/#{ticket.id}"
       },
       detection_id: detection&.id,
+      target_selector: target_dom_selector(detection),
+      dom_actions: build_dom_actions(detection, ticket),
       report: report_content,
       ragie_results: ragie_results,
       ragie_provider: ragie_response[:provider],
@@ -131,7 +133,9 @@ class PageAgentService
   private
 
   def active_provider_name
-    if ENV["GROK_API_KEY"].present? || ENV["XAI_API_KEY"].present?
+    if ENV["GROQ_API_KEY"].present?
+      "Groq Live API [#{ENV.fetch('GROQ_MODEL', 'llama-3.3-70b-versatile')}]"
+    elsif ENV["GROK_API_KEY"].present? || ENV["XAI_API_KEY"].present?
       "Grok (xAI) Live API [#{ENV.fetch('GROK_MODEL', 'grok-2-latest')}]"
     elsif ENV["OPENAI_API_KEY"].present?
       "OpenAI Live [#{ENV.fetch('OPENAI_MODEL', 'gpt-4o-mini')}]"
@@ -140,6 +144,32 @@ class PageAgentService
     else
       "Contextual Local Engine (Simulated Mode)"
     end
+  end
+
+  def target_dom_selector(detection)
+    return "#detection-row-#{detection.id}" if detection
+    ".data-table tbody tr:first-child"
+  end
+
+  def build_dom_actions(detection, ticket)
+    selector = target_dom_selector(detection)
+    [
+      {
+        type: "perceive_and_highlight",
+        selector: selector,
+        phase: "observe",
+        label: "🎯 Page-Agent DOM Focus: #{detection&.title || 'Security Alert'}",
+        border_color: "#facc15" # Neon Yellow
+      },
+      {
+        type: "execute_containment",
+        selector: selector,
+        phase: "act",
+        label: "⚡ Zero-Touch Containment & Ticket #{ticket.ticket_number}",
+        border_color: "#10b981", # Emerald Green
+        status_text: "CONTAINED (Zero Human Touch)"
+      }
+    ]
   end
 
   def resolve_detection
