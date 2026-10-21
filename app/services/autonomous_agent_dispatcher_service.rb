@@ -184,6 +184,9 @@ class AutonomousAgentDispatcherService
   end
 
   def build_autonomous_incident_report(ticket, analysis, detection, provider_name)
+    conf = analysis["confidence"].to_f
+    conf_pct = conf <= 1.0 ? (conf * 100).round : conf.round
+
     <<~REPORT
       ## 🤖 Sentriq Autonomous Security Incident Report (Zero-Touch)
 
@@ -192,7 +195,7 @@ class AutonomousAgentDispatcherService
       - **Incident Title:** #{ticket.title}
       - **Target Endpoint:** `#{detection.hostname}` (#{detection.ip_address || 'Internal Network'})
       - **Determined Intent:** `#{analysis['intent']}`
-      - **Confidence Score:** #{(analysis['confidence'].to_f * 100).round}%
+      - **Confidence Score:** #{conf_pct}%
       - **Assigned Priority:** `#{ticket.priority.upcase}`
 
       ### 1. Executive Summary
