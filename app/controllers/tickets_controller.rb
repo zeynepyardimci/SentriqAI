@@ -108,6 +108,20 @@ class TicketsController < ApplicationController
     redirect_to demo_tickets_path
   end
 
+  # Zero-Touch Autonomous Ingestion across active detections without any human intervention
+  def autonomous_ingest
+    outcome = AutonomousAgentDispatcherService.new(all_unhandled: true, current_user: current_user).call
+
+    if outcome[:success]
+      flash[:notice] = "🤖 Autonomous Agent completed zero-touch triage for #{outcome[:processed_count]} detection(s) with ZERO human intervention! (Tickets opened & triaged)"
+      session[:last_autonomous_logs] = outcome[:logs]
+    else
+      flash[:alert] = "Autonomous Agent triage failed: #{outcome[:error]}"
+    end
+
+    redirect_back fallback_location: tickets_path
+  end
+
   private
 
   def set_ticket

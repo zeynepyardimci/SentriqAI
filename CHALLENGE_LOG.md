@@ -19,14 +19,17 @@
 - Commit linkleri, çalışan testler, canlı demo adımları:
   - Commit `48734d8`: `feat: initialize Rails 8 application with PostgreSQL and pain point research`
   - Commit `42ac028`: `feat: complete end-to-end AI investigation, RAG, HITL review, and test suite`
-  - Çalışan Testler Kanıtı: `ruby bin/rails test` çalıştırıldı; 39 test, 176 assertion, 0 hata, 0 başarısızlık (100% geçiş).
+  - Commit `e5439cf`: `feat: implement agent-first REST API, contextual decision engine, and interactive simulation demo`
+  - Commit `(pending)`: `feat: add zero-touch autonomous agent ingestion service, API endpoint, and UI triggers`
+  - Çalışan Testler Kanıtı: `ruby bin/rails test` çalıştırıldı; 43 test, 210 assertion, 0 hata, 0 başarısızlık (100% geçiş).
     - Model testleri (Detection state machine, Ticket status transitions, SLA calculations)
     - RAG Knowledge Base search ve prompt injection sanitization testleri
     - LLM şema doğrulama ve bozuk JSON yakalama testleri
     - Contextual testler: "Acil" ve "teşekkürler" kelimeleri içeren tatbikat mesajının bağlamı değerlendirilerek düşük öncelikli sınıflandırılması ve aktif tehditlerin kritik olarak insana devredilmesi kanıtlandı.
     - Agent API V1 testleri: Ticket oluşturma, idempotency (mükerrer istek engelleme), token ile yetkilendirme, yetkisiz isteklerin reddi ve insan kararının API üzerinden okunması kanıtlandı.
-  - Güvenlik Kanıtı: Brakeman 8.1.0 SAST taraması çalıştırıldı; 0 güvenlik uyarısı alındı.
-  - Canlı Demo Kanıtı: `http://127.0.0.1:3000/` üzerinde Rails 8 sunucusu ayağa kaldırıldı, browser subagent ile arayüz uçtan uca denendi, Senaryo A (Aktif Tehdit) ve Senaryo B (Bağlamsal Test) browser ve curl üzerinden test edildi.
+    - Zero-Touch Autonomous Agent Testleri: İnsan müdahalesi olmadan doğrudan veritabanında bilet açma (`AutonomousAgentDispatcherServiceTest`), RAG iliştirme, yüksek riskli olayları otomatik `pending_review` durumuna sevk etme ve `POST /api/v1/agent/autonomous_ingest` endpoint testi kanıtlandı.
+  - Güvenlik Kanıtı: Brakeman 8.1.0 SAST taraması çalıştırıldı; 0 güvenlik uyarısı alındı (11 controller, 12 model, 11 şablon).
+  - Canlı Demo Kanıtı: `http://127.0.0.1:3000/` üzerinde Rails 8 sunucusu ayağa kaldırıldı, `/tickets/demo`, `/tickets` ve `/detections/:id` ekranlarında "Otonom Agent Biletleme (Zero-Touch Ingest)" butonları ve live log konsolu başarıyla doğrulandı.
 - Vaat edip yapamadığın ne varsa açıkça yaz: Harici bir Render API anahtarı veya canlı OpenAI/Gemini API anahtarı ortam değişkenlerinde tanımlı olmadığı için, canlı LLM çağrıları yerine akıllı Contextual Local Engine çalıştırılmış ve bu durum arayüzde `Deterministic Local Engine (Simulated Mode)` olarak dürüstçe etiketlenmiştir.
 
 ## Zaman

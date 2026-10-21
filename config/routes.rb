@@ -8,6 +8,7 @@ Rails.application.routes.draw do
       post :investigate
       post :review
       post :add_note
+      post :auto_ticket
     end
     collection do
       post :check_sla
@@ -22,6 +23,7 @@ Rails.application.routes.draw do
     collection do
       get :demo
       post :trigger_agent_flow
+      post :autonomous_ingest
     end
   end
 
@@ -32,6 +34,8 @@ Rails.application.routes.draw do
   # Agent-First REST API v1
   namespace :api do
     namespace :v1 do
+      post "agent/autonomous_ingest", to: "autonomous_agents#ingest"
+
       resources :tickets, only: [:create, :show] do
         member do
           post :analyze

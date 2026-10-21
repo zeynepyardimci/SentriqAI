@@ -16,6 +16,7 @@ class Detection < ApplicationRecord
   belongs_to :assigned_to, class_name: "User", optional: true
   has_many :evidences, dependent: :destroy
   has_many :investigations, dependent: :destroy
+  has_many :tickets, dependent: :nullify
   has_many :audit_events, as: :trackable, dependent: :destroy
 
   validates :title, presence: true

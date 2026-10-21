@@ -122,7 +122,50 @@ Content-Type: application/json
 }
 ```
 
-### 3.4. Diğer API Endpoint'leri
+### 3.4. Sıfır İnsan Müdahalesi: Otonom Agent Ingestion API
+`POST /api/v1/agent/autonomous_ingest`
+
+İnsan analistin form doldurmasına veya arayüz kullanmasına gerek kalmadan, harici bir SOAR botu, EDR telemetri kuyruğu veya cron job bu endpoint'i çağırarak tespit edilen olayı **doğrudan biletletir, LLM ile bağlamsal triage yaptırır ve RAG runbook'larını bağlatır**:
+
+**İstek (Header: Authorization: Bearer <TOKEN>):**
+```json
+{
+  "detection_id": 3,
+  "all_unhandled": false
+}
+```
+
+**Yanıt (HTTP 200 OK):**
+```json
+{
+  "success": true,
+  "message": "Autonomous agent completed zero-touch triage for 1 event(s).",
+  "processed_count": 1,
+  "results": [
+    {
+      "ticket_id": 9,
+      "ticket_number": "SQT-2026-881234",
+      "title": "🤖 [Zero-Touch Alert] Volume Shadow Copies Deletion via vssadmin",
+      "status": "pending_review",
+      "priority": "critical",
+      "outcome": "pending_review",
+      "intent": "active_threat_containment",
+      "confidence": 92,
+      "recommended_action": "Perform host network containment and inspect parent-child process telemetry",
+      "requires_human_review": true
+    }
+  ],
+  "logs": [
+    "[17:40:01] [SENSOR] Incoming telemetry alert detected from endpoint: WIN-FINANCE-01",
+    "[17:40:02] [AGENT] Ticket SQT-2026-881234 autonomously opened in database with ZERO human intervention (Priority: critical).",
+    "[17:40:03] [LLM] Invoking Contextual Analysis Engine (Intent: active_threat_containment)...",
+    "[17:40:03] [RAG] RAG runbook search attached 1 verified document(s): RB-0201: Ransomware Rapid Containment.",
+    "[17:40:04] [HANDOVER] High-risk action required. Autonomous Agent shifted ticket to 'pending_review' with safety lock."
+  ]
+}
+```
+
+### 3.5. Diğer API Endpoint'leri
 - `GET /api/v1/tickets/:id`: Ticket ayrıntılarını, telemetriyi ve not geçmişini okuma.
 - `POST /api/v1/tickets/:id/notes`: Ticket'a agent bulgusu veya taslak yanıt ekleme.
 - `POST /api/v1/tickets/:id/escalate`: İnsan analiste devretme (`pending_review`).
@@ -166,7 +209,7 @@ Sentriq AI, yüzeysel anahtar kelime eşleştirmesi (`"acil"`, `"teşekkür"`, `
    ruby bin/rails db:seed
    ```
 
-4. **Testleri Çalıştırın (39 test, 0 hata):**
+4. **Testleri Çalıştırın (43 test, 210 assertion, 0 hata):**
    ```bash
    ruby bin/rails test
    ```

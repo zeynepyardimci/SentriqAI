@@ -3,7 +3,7 @@ class Ticket < ApplicationRecord
   PRIORITIES = %w[low medium high critical].freeze
 
   VALID_TRANSITIONS = {
-    "open" => %w[investigating pending_review closed],
+    "open" => %w[investigating pending_review resolved closed],
     "investigating" => %w[pending_review resolved closed],
     "pending_review" => %w[resolved investigating closed],
     "resolved" => %w[open closed],

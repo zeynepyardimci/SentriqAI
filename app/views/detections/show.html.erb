@@ -164,6 +164,47 @@
 
   <!-- RIGHT COLUMN: AI Investigation Findings & Human-in-the-Loop Review -->
   <div>
+    <!-- Autonomous Agent Ticket Status & Zero-Touch Trigger -->
+    <div class="panel-card" style="border: 1px solid rgba(6, 182, 212, 0.4); margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(15, 23, 42, 0.9) 100%);">
+      <div class="panel-title">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 8v4l3 3"/>
+          </svg>
+          <span style="color: #38bdf8;">Otonom Ajan Biletleme (Zero-Touch Triage)</span>
+        </div>
+        <span class="badge" style="background: rgba(6, 182, 212, 0.2); color: #22d3ee; border: 1px solid var(--cyan-primary);">
+          Sıfır İnsan Müdahalesi
+        </span>
+      </div>
+
+      <% if @detection.tickets.any? %>
+        <% active_ticket = @detection.tickets.recent_first.first %>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+          Bu tespit için otonom yazılım ajanı tarafından veritabanında doğrudan bilet açılmış ve LLM ile incelenmiştir:
+        </p>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div>
+            <strong style="color: #38bdf8; font-family: var(--font-mono);"><%= active_ticket.ticket_number %></strong>
+            <span style="margin: 0 0.5rem; color: var(--text-muted);">&bull;</span>
+            <span class="badge badge-status-<%= active_ticket.status %>"><%= active_ticket.status.humanize %></span>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+              Ajan: <%= active_ticket.assigned_agent %> &bull; <%= time_ago_in_words(active_ticket.created_at) %> önce
+            </div>
+          </div>
+          <%= link_to "Bileti İncele &rarr;".html_safe, ticket_path(active_ticket), class: "btn btn-secondary", style: "font-size: 0.8rem;" %>
+        </div>
+      <% else %>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          İnsan analistin form doldurmasına gerek kalmadan, yazılım ajanı bu tespiti doğrudan veritabanında biletler, LLM bağlamsal analizini ve RAG runbook eşleştirmesini yürütür.
+        </p>
+        <%= button_to auto_ticket_detection_path(@detection), method: :post, class: "btn btn-agent", style: "width: 100%; justify-content: center; gap: 0.5rem;" do %>
+          🤖 Otonom Agent Ticket Açsın (Zero-Touch Triage)
+        <% end %>
+      <% end %>
+    </div>
+
     <% if @latest_investigation %>
       <!-- AI Investigation Card -->
       <div class="panel-card ai-report-card">

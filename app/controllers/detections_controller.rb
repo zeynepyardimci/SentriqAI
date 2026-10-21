@@ -1,5 +1,5 @@
 class DetectionsController < ApplicationController
-  before_action :set_detection, only: [:show, :investigate, :review, :add_note]
+  before_action :set_detection, only: [:show, :investigate, :review, :add_note, :auto_ticket]
 
   def index
     @detections = SearchDetectionsService.new(params, current_user: current_user).call
@@ -66,6 +66,20 @@ class DetectionsController < ApplicationController
   rescue StandardError => e
     flash[:alert] = "Failed to add note: #{e.message}"
     redirect_to detection_path(@detection)
+  end
+
+  def auto_ticket
+    outcome = AutonomousAgentDispatcherService.new(detection: @detection, current_user: current_user).call
+
+    if outcome[:success] && outcome[:results].any?
+      result = outcome[:results].first
+      ticket = result[:ticket]
+      flash[:notice] = "🤖 Autonomous Agent directly opened ticket #{ticket.ticket_number} without human intervention! (Status: #{ticket.status}, Intent: #{result[:analysis]&.dig('intent')})"
+      redirect_to ticket_path(ticket)
+    else
+      flash[:alert] = "Autonomous Agent dispatch failed: #{outcome[:error] || 'No action taken'}"
+      redirect_to detection_path(@detection)
+    end
   end
 
   def check_sla
