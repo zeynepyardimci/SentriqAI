@@ -31,6 +31,10 @@ Rails.application.routes.draw do
   resource :session, only: [:new, :create, :destroy]
   get "audit_trail", to: "audit_events#index"
 
+  # Page-Agent In-Page GUI & Ragie RAG Endpoints
+  post "page_agent/execute", to: "page_agent#execute"
+  post "page_agent/ragie_search", to: "page_agent#ragie_search"
+
   # Agent-First REST API v1
   namespace :api do
     namespace :v1 do

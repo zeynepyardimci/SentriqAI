@@ -23,12 +23,20 @@
       </div>
       <div>
         Active Provider: 
-        <% if ENV["OPENAI_API_KEY"].present? %>
+        <% if ENV["GROK_API_KEY"].present? || ENV["XAI_API_KEY"].present? %>
+          <span style="color: #10b981;">Grok (xAI) Live (<%= ENV.fetch("GROK_MODEL", "grok-2-latest") %>)</span>
+        <% elsif ENV["OPENAI_API_KEY"].present? %>
           <span style="color: #10b981;">OpenAI Live (<%= ENV.fetch("OPENAI_MODEL", "gpt-4o-mini") %>)</span>
         <% elsif ENV["GEMINI_API_KEY"].present? %>
           <span style="color: #10b981;">Gemini Live (<%= ENV.fetch("GEMINI_MODEL", "gemini-1.5-flash") %>)</span>
         <% else %>
           <span style="color: #f59e0b;">Deterministic Local Engine (Simulated Mode)</span>
+        <% end %>
+        &bull; RAG:
+        <% if ENV["RAGIE_API_KEY"].present? %>
+          <span style="color: #06b6d4;">Ragie.ai Cloud</span>
+        <% else %>
+          <span style="color: #94a3b8;">Ragie Local RAG Engine</span>
         <% end %>
       </div>
     </div>
@@ -106,5 +114,8 @@
         Independent prototype inspired by modern EDR investigation triage workflows. Not affiliated with, endorsed by, or partnered with CrowdStrike or Falcon.
       </p>
     </footer>
+
+    <!-- In-Page GUI Agent Widget (Page-Agent Paradigm) -->
+    <%= render "shared/page_agent" %>
   </body>
 </html>

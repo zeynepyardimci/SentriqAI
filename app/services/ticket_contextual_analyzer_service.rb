@@ -9,9 +9,9 @@ class TicketContextualAnalyzerService
   end
 
   def call
-    # 1. RAG search over knowledge base runbooks
+    # 1. RAG search over knowledge base runbooks via Ragie / Local RAG engine
     search_query = [@ticket.title, @ticket.description, @ticket.detection&.process_name].compact.join(" ")
-    rag_response = SearchKnowledgeBaseService.new(search_query, limit: 3).call
+    rag_response = RagieRetrievalService.new(search_query, limit: 3).call
     rag_results = rag_response[:results] || []
 
     payload = nil
