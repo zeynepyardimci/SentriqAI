@@ -91,7 +91,7 @@ class AutonomousAgentDispatcherService
     analysis_result = TicketContextualAnalyzerService.new(ticket: ticket, current_user: @current_user).call
     analysis = analysis_result[:analysis]
 
-    log "RAG", "RAG runbook search attached #{analysis['source_refs']&.size.to_i} verified document(s): #{analysis['source_refs']&.map { |s| s['title'] }&.join(', ').presence || 'None'}."
+    log "RAG", "RAG runbook search attached #{analysis['source_refs']&.size.to_i} verified document(s): #{analysis['source_refs']&.map { |s| s['document_title'] || s['title'] }&.compact_blank&.join(', ').presence || 'None'}."
 
     # 3. Autonomous Agent Research Note Attachment
     ticket.ticket_notes.create!(
