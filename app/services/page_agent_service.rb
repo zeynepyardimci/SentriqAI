@@ -168,10 +168,9 @@ class PageAgentService
       return existing if existing
     end
 
-    idempotency_key = "page-agent-#{detection&.id || 'gen'}-#{Time.current.strftime('%Y%m%d%H%M')}"
-    existing = Ticket.find_by(idempotency_key: idempotency_key)
-    # Reuse idempotent ticket only if it's still active
-    return existing if existing && %w[open pending_review].include?(existing.status)
+    # Always generate a unique key per execution (seconds + random) to avoid collisions
+    # across repeated agent runs on the same detection in the same minute
+    idempotency_key = "page-agent-#{detection&.id || 'gen'}-#{Time.current.strftime('%Y%m%d%H%M%S')}-#{SecureRandom.hex(4)}"
 
     title = detection ? "🤖 [Page-Agent Alert] #{detection.title} (#{detection.hostname})" : "🤖 [Page-Agent] Security Incident Triage Request"
     description = if detection
