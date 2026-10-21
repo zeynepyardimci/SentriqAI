@@ -20,7 +20,7 @@
   - Commit `48734d8`: `feat: initialize Rails 8 application with PostgreSQL and pain point research`
   - Commit `42ac028`: `feat: complete end-to-end AI investigation, RAG, HITL review, and test suite`
   - Commit `e5439cf`: `feat: implement agent-first REST API, contextual decision engine, and interactive simulation demo`
-  - Commit `(pending)`: `feat: add zero-touch autonomous agent ingestion service, API endpoint, and UI triggers`
+  - Commit `4c76008`: `feat: add zero-touch autonomous agent ingestion service, API endpoint, and UI triggers`
   - Çalışan Testler Kanıtı: `ruby bin/rails test` çalıştırıldı; 43 test, 210 assertion, 0 hata, 0 başarısızlık (100% geçiş).
     - Model testleri (Detection state machine, Ticket status transitions, SLA calculations)
     - RAG Knowledge Base search ve prompt injection sanitization testleri
