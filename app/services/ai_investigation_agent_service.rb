@@ -49,17 +49,55 @@ class AiInvestigationAgentService
   private
 
   def live_api_configured?
-    ENV["OPENAI_API_KEY"].present? || ENV["GEMINI_API_KEY"].present?
+    grok_configured? || ENV["OPENAI_API_KEY"].present? || ENV["GEMINI_API_KEY"].present?
+  end
+
+  def grok_configured?
+    ENV["GROK_API_KEY"].present? || ENV["XAI_API_KEY"].present?
   end
 
   def request_live_llm(detection, evidences, rag_results)
-    if ENV["OPENAI_API_KEY"].present?
+    if grok_configured?
+      request_grok(detection, evidences, rag_results)
+    elsif ENV["OPENAI_API_KEY"].present?
       request_openai(detection, evidences, rag_results)
     elsif ENV["GEMINI_API_KEY"].present?
       request_gemini(detection, evidences, rag_results)
     else
       raise "No LLM provider configured"
     end
+  end
+
+  def request_grok(detection, evidences, rag_results)
+    api_key = ENV["GROK_API_KEY"].presence || ENV["XAI_API_KEY"]
+    model = ENV.fetch("GROK_MODEL", "grok-2-latest")
+    uri = URI.parse("https://api.x.ai/v1/chat/completions")
+
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true
+    http.read_timeout = 30
+
+    prompt = build_system_and_user_prompt(detection, evidences, rag_results)
+
+    request = Net::HTTP::Post.new(uri.request_uri)
+    request["Authorization"] = "Bearer #{api_key}"
+    request["Content-Type"] = "application/json"
+    request.body = {
+      model: model,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: system_instruction },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.2
+    }.to_json
+
+    response = http.request(request)
+    raise "Grok (xAI) API returned HTTP #{response.code}: #{response.body}" unless response.is_a?(Net::HTTPSuccess)
+
+    parsed = JSON.parse(response.body)
+    content = parsed.dig("choices", 0, "message", "content")
+    JSON.parse(content)
   end
 
   def request_openai(detection, evidences, rag_results)

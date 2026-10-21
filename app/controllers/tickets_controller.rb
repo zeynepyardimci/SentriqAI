@@ -110,10 +110,11 @@ class TicketsController < ApplicationController
 
   # Zero-Touch Autonomous Ingestion across active detections without any human intervention
   def autonomous_ingest
-    outcome = AutonomousAgentDispatcherService.new(all_unhandled: true, current_user: current_user).call
+    human_gate = params[:human_gate].present? ? ActiveModel::Type::Boolean.new.cast(params[:human_gate]) : false
+    outcome = AutonomousAgentDispatcherService.new(all_unhandled: true, current_user: current_user, human_gate: human_gate).call
 
     if outcome[:success]
-      flash[:notice] = "🤖 Autonomous Agent completed zero-touch triage for #{outcome[:processed_count]} detection(s) with ZERO human intervention! (Tickets opened & triaged)"
+      flash[:notice] = "🤖 Autonomous Agent completed zero-touch triage & reporting for #{outcome[:processed_count]} detection(s) with ZERO human intervention!"
       session[:last_autonomous_logs] = outcome[:logs]
     else
       flash[:alert] = "Autonomous Agent triage failed: #{outcome[:error]}"

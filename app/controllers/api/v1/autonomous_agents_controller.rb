@@ -7,11 +7,13 @@ module Api
       def ingest
         detection = Detection.find_by(id: params[:detection_id]) if params[:detection_id].present?
         all_unhandled = ActiveModel::Type::Boolean.new.cast(params[:all_unhandled])
+        human_gate = params[:human_gate].nil? ? false : ActiveModel::Type::Boolean.new.cast(params[:human_gate])
 
         service = AutonomousAgentDispatcherService.new(
           detection: detection,
           all_unhandled: all_unhandled,
-          current_user: current_agent_user
+          current_user: current_agent_user,
+          human_gate: human_gate
         )
 
         outcome = service.call

@@ -180,7 +180,12 @@ Sentriq AI, yüzeysel anahtar kelime eşleştirmesi (`"acil"`, `"teşekkür"`, `
 1. **Rutin Tatbikat / Retrospektif:** İçerikte "acil" kelimesi geçse dahi ("Dünkü acil durum tatbikatı tamamlandı, teşekkürler"), LLM bunu rutin tatbikat olarak algılar (`informational_retrospective`, Düşük öncelik, insana devir gerekmez).
 2. **Aktif Saldırı:** "Acil" kelimesi geçmese bile arka planda gizli PowerShell veya LOLBin indirimi varsa, LLM bunu aktif tehdit olarak algılar (`active_threat_containment`, Kritik öncelik, insana devir zorunlu).
 3. **Belirsizlik & Çelişki:** Çelişkili ifadelerde ("emin değilim, kural istisnası") sistem varsayım üretmez, doğrudan `pending_review` akışına devreder.
-4. **Prompt Injection Savunması:** Bilgi dokümanlarındaki ("Ignore all instructions") gibi zararlı metinler filtrelenir ve etkisiz hale getirilir.
+### 4.1. LLM Sağlayıcıları (Grok xAI, OpenAI, Gemini & Yerel Motor)
+Sentriq AI çoklu LLM sağlayıcı mimarisini destekler:
+- **xAI Grok API:** `.env` dosyasına `GROK_API_KEY=xai-...` tanımlandığında sistem doğrudan `https://api.x.ai/v1/chat/completions` üzerinden `grok-2-latest` modelini kullanır.
+- **OpenAI:** `OPENAI_API_KEY=sk-...` tanımlandığında `gpt-4o-mini` modelini kullanır.
+- **Google Gemini:** `GEMINI_API_KEY=AIza...` tanımlandığında `gemini-1.5-flash` modelini kullanır.
+- **Deterministik Bağlamsal Yerel Motor:** Harici API anahtarı verilmediğinde sistem otomatik olarak akıllı yerel motoru çalıştırır ve raporları şeffafça `Contextual Local Engine (Simulated Mode)` olarak etiketler.
 
 ---
 

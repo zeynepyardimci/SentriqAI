@@ -69,12 +69,13 @@ class DetectionsController < ApplicationController
   end
 
   def auto_ticket
-    outcome = AutonomousAgentDispatcherService.new(detection: @detection, current_user: current_user).call
+    human_gate = params[:human_gate].present? ? ActiveModel::Type::Boolean.new.cast(params[:human_gate]) : false
+    outcome = AutonomousAgentDispatcherService.new(detection: @detection, current_user: current_user, human_gate: human_gate).call
 
     if outcome[:success] && outcome[:results].any?
       result = outcome[:results].first
       ticket = result[:ticket]
-      flash[:notice] = "🤖 Autonomous Agent directly opened ticket #{ticket.ticket_number} without human intervention! (Status: #{ticket.status}, Intent: #{result[:analysis]&.dig('intent')})"
+      flash[:notice] = "🤖 Autonomous Agent directly opened ticket #{ticket.ticket_number} & generated incident report without human intervention! (Status: #{ticket.status}, Intent: #{result[:analysis]&.dig('intent')})"
       redirect_to ticket_path(ticket)
     else
       flash[:alert] = "Autonomous Agent dispatch failed: #{outcome[:error] || 'No action taken'}"

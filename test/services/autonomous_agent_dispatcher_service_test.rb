@@ -46,9 +46,29 @@ class AutonomousAgentDispatcherServiceTest < ActiveSupport::TestCase
       # Verify agent research note was autonomously attached
       agent_note = ticket.ticket_notes.where(author_type: "agent").last
       assert_not_nil agent_note
-      assert_match(/Autonomous Investigation Trace/, agent_note.body)
+      assert_match(/Autonomous Security Incident Report/, agent_note.body)
 
       # Verify execution logs show zero human intervention
+      assert outcome[:logs].any? { |l| l.include?("ZERO human intervention") }
+    end
+  end
+
+  test "autonomously resolves and reports incident when human_gate is false with zero human intervention" do
+    service = AutonomousAgentDispatcherService.new(
+      detection: @detection,
+      current_user: @user,
+      human_gate: false
+    )
+
+    assert_difference("Ticket.count", 1) do
+      outcome = service.call
+      assert outcome[:success]
+      ticket = outcome[:results].first[:ticket]
+
+      # With human_gate false, ticket is fully resolved without human intervention
+      assert_equal "resolved", ticket.status
+      assert_equal "resolved", outcome[:results].first[:outcome]
+      assert_equal "auto_resolved_zero_human_touch", ticket.human_decision
       assert outcome[:logs].any? { |l| l.include?("ZERO human intervention") }
     end
   end
