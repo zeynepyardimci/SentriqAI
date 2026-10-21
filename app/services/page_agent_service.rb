@@ -63,7 +63,10 @@ class PageAgentService
 
     # Step E: Containment & Resolution without human intervention
     if !@human_intervention
-      ticket.transition_to!("resolved", reason: "Page-Agent completed in-page triage and containment with ZERO human intervention.")
+      # Only transition if not already resolved/closed
+      unless %w[resolved closed].include?(ticket.status)
+        ticket.transition_to!("resolved", reason: "Page-Agent completed in-page triage and containment with ZERO human intervention.")
+      end
       ticket.update_columns(
         human_decision: "page_agent_auto_resolved",
         human_decision_notes: "Zero human intervention. Page-Agent parsed page DOM, retrieved Ragie RAG runbooks, and executed containment protocol.",
@@ -76,8 +79,13 @@ class PageAgentService
 
       log_step("act", "Threat containment executed. Ticket #{ticket.ticket_number} marked RESOLVED with ZERO human intervention.")
     else
-      ticket.escalate_to_human!(reason: "Page-Agent flagged ticket for human analyst confirmation", user: @current_user)
-      log_step("act", "Ticket #{ticket.ticket_number} shifted to pending_review for human sign-off.")
+      # Only escalate if ticket is in a state that allows pending_review transition
+      if ticket.can_transition_to?("pending_review")
+        ticket.escalate_to_human!(reason: "Page-Agent flagged ticket for human analyst confirmation", user: @current_user)
+        log_step("act", "Ticket #{ticket.ticket_number} shifted to pending_review for human sign-off.")
+      else
+        log_step("act", "Ticket #{ticket.ticket_number} already in '#{ticket.status}' — skipping escalation transition.")
+      end
     end
 
     AuditEvent.create!(
@@ -155,13 +163,15 @@ class PageAgentService
 
   def find_or_create_ticket(detection, ragie_results)
     if detection
-      existing = detection.tickets.where.not(status: %w[closed]).recent_first.first
+      # Reuse only active (open or pending_review) tickets, NOT resolved/closed ones
+      existing = detection.tickets.where(status: %w[open pending_review]).recent_first.first
       return existing if existing
     end
 
     idempotency_key = "page-agent-#{detection&.id || 'gen'}-#{Time.current.strftime('%Y%m%d%H%M')}"
     existing = Ticket.find_by(idempotency_key: idempotency_key)
-    return existing if existing
+    # Reuse idempotent ticket only if it's still active
+    return existing if existing && %w[open pending_review].include?(existing.status)
 
     title = detection ? "🤖 [Page-Agent Alert] #{detection.title} (#{detection.hostname})" : "🤖 [Page-Agent] Security Incident Triage Request"
     description = if detection
