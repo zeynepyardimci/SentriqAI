@@ -1,245 +1,326 @@
-<!-- Sentriq In-Page GUI Agent (Page-Agent Paradigm) -->
-<div id="page-agent-container" style="position: fixed; bottom: 20px; right: 24px; z-index: 9999; font-family: var(--font-sans, system-ui);">
-  <!-- Trigger Button (Floating Agent Orb) -->
-  <button id="page-agent-trigger" onclick="togglePageAgent()" style="display: flex; align-items: center; gap: 0.65rem; background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%); color: #ffffff; border: 1px solid rgba(255,255,255,0.25); border-radius: 9999px; padding: 0.65rem 1.25rem; font-weight: 600; font-size: 0.85rem; box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.5), 0 8px 10px -6px rgba(139, 92, 246, 0.4); cursor: pointer; transition: all 0.25s ease;">
-    <span style="font-size: 1.1rem; animation: pulse 2s infinite;">🤖</span>
-    <span>Page-Agent</span>
-    <span style="font-size: 0.7rem; background: rgba(0,0,0,0.35); padding: 0.2rem 0.5rem; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.2);">Ragie RAG</span>
-  </button>
+<!-- Sentriq In-Page Autonomous Agent — Auto-executes, surfaces only when human input needed -->
 
-  <!-- Page Agent Modal / HUD Drawer -->
-  <div id="page-agent-hud" style="display: none; width: 440px; max-width: 90vw; max-height: 85vh; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(16px); border: 1px solid rgba(6, 182, 212, 0.4); border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); overflow: hidden; margin-top: 10px; display: none; flex-direction: column;">
-    
-    <!-- HUD Header -->
-    <div style="background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%); padding: 0.85rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <span style="font-size: 1.2rem;">🤖</span>
-        <div>
-          <div style="font-weight: 700; font-size: 0.95rem; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
-            PAGE-AGENT
-            <span style="font-size: 0.65rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; padding: 0.1rem 0.4rem; border-radius: 4px;">In-Page GUI</span>
-          </div>
-          <div style="font-size: 0.7rem; color: #94a3b8;">Autonomous DOM Observer & Ragie RAG Executor</div>
-        </div>
-      </div>
-      <button onclick="togglePageAgent()" style="background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer; padding: 0.25rem;">&times;</button>
-    </div>
+<!-- ── Floating Status Orb (always visible, minimal) ──────────────────────── -->
+<div id="pa-orb" title="Sentriq Autonomous Agent" onclick="paTogglePanel()" style="
+  position: fixed; bottom: 22px; right: 22px; z-index: 9999;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+  box-shadow: 0 0 0 0 rgba(6,182,212,0.6);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: transform 0.2s;
+  animation: pa-idle-pulse 3s ease-in-out infinite;
+">
+  <span id="pa-orb-icon" style="font-size: 1.4rem; line-height: 1;">🤖</span>
+</div>
 
-    <!-- Live Page Context Observation Bar -->
-    <div style="background: rgba(0, 0, 0, 0.4); padding: 0.65rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.75rem;">
-      <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-        <span style="color: #64748b; text-transform: uppercase; font-weight: 600;">Gözlemlenen Sayfa DOM'u:</span>
-        <span id="pa-page-url" style="color: #38bdf8; font-family: monospace;"></span>
-      </div>
-      <div id="pa-page-detection" style="color: #e2e8f0; font-size: 0.8rem; font-weight: 500;">
-        Sayfa taranıyor...
-      </div>
-    </div>
+<!-- ── Toast notification (non-intrusive result alert) ──────────────────── -->
+<div id="pa-toast" style="
+  position: fixed; bottom: 86px; right: 22px; z-index: 9998;
+  background: rgba(10,20,40,0.97); border: 1px solid rgba(6,182,212,0.5);
+  border-radius: 10px; padding: 0.75rem 1rem; width: 320px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: none;
+  font-family: system-ui, sans-serif; font-size: 0.82rem; color: #e2e8f0;
+  animation: pa-slide-in 0.3s ease;
+">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+    <strong id="pa-toast-title" style="color:#34d399;">🤖 Agent Raporu</strong>
+    <button onclick="document.getElementById('pa-toast').style.display='none'" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:1rem;">✕</button>
+  </div>
+  <div id="pa-toast-body" style="color:#94a3b8; line-height:1.4;"></div>
+  <div id="pa-toast-actions" style="margin-top:0.5rem; display:flex; gap:0.5rem;"></div>
+</div>
 
-    <!-- Active Engines Status -->
-    <div style="display: flex; gap: 0.5rem; padding: 0.5rem 1.25rem; background: rgba(2, 6, 23, 0.4); border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.7rem;">
-      <div style="color: #94a3b8;">
-        Reasoning: <strong style="color: #a78bfa;"><%= ENV["GROK_API_KEY"].present? ? "Grok (xAI) Live" : (ENV["OPENAI_API_KEY"].present? ? "OpenAI Live" : "Contextual Local Engine") %></strong>
-      </div>
-      <span style="color: #475569;">&bull;</span>
-      <div style="color: #94a3b8;">
-        RAG: <strong style="color: #22d3ee;"><%= ENV["RAGIE_API_KEY"].present? ? "Ragie.ai Cloud" : "Ragie Local Knowledge" %></strong>
-      </div>
-    </div>
-
-    <!-- Scrollable Execution & Interaction Area -->
-    <div style="padding: 1.25rem; overflow-y: auto; max-height: 48vh; display: flex; flex-direction: column; gap: 1rem;">
-      
-      <!-- Quick Action Buttons -->
+<!-- ── Full Panel (opens only when human needed OR user clicks orb) ──────── -->
+<div id="pa-panel" style="
+  position: fixed; bottom: 84px; right: 22px; z-index: 9998;
+  width: 420px; max-width: 92vw; max-height: 80vh;
+  background: rgba(10, 18, 36, 0.97); backdrop-filter: blur(18px);
+  border: 1px solid rgba(6,182,212,0.4); border-radius: 14px;
+  box-shadow: 0 25px 60px -10px rgba(0,0,0,0.75);
+  display: none; flex-direction: column; overflow: hidden;
+  font-family: system-ui, sans-serif;
+">
+  <!-- Panel Header -->
+  <div style="background: linear-gradient(90deg, rgba(6,182,212,0.18), rgba(139,92,246,0.18)); padding: 0.8rem 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      <span style="font-size:1.2rem;">🤖</span>
       <div>
-        <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.5rem;">
-          Hızlı Otonom Komutlar (Sıfır İnsan Müdahalesi):
+        <div style="font-weight:700; font-size:0.9rem; color:#38bdf8; display:flex; align-items:center; gap:0.4rem;">
+          SENTRIQ AGENT
+          <span id="pa-panel-mode-badge" style="font-size:0.6rem; background:rgba(16,185,129,0.2); color:#34d399; border:1px solid #10b981; padding:0.1rem 0.4rem; border-radius:4px;">OTONOM</span>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-          <button onclick="runPageAgentCommand('Bu tespiti incele, otomatik ticket aç, Ragie RAG\'e sor ve sıfır insan müdahalesiyle raporlayıp çöz.')" style="background: rgba(6, 182, 212, 0.12); border: 1px solid rgba(6, 182, 212, 0.4); color: #38bdf8; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.8rem; text-align: left; cursor: pointer; transition: background 0.15s ease;">
-            ⚡ <strong>Otonom Ticket Aç & Ragie ile Raporla</strong>
-            <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.15rem;">Bilet açar, Ragie runbook'u bağlar ve insan beklemeden çözer.</div>
-          </button>
-          
-          <button onclick="runPageAgentCommand('Ragie RAG bilgi tabanında bu sayfadaki tehdit için ilgili acil müdahale prosedürlerini ara.')" style="background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.4); color: #c084fc; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.8rem; text-align: left; cursor: pointer; transition: background 0.15s ease;">
-            📚 <strong>Ragie RAG Runbook Sorgula</strong>
-            <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.15rem;">Doğrudan Ragie.ai API üzerinden runbook ve kanıt parçaları çeker.</div>
-          </button>
-        </div>
-      </div>
-
-      <!-- Execution Trace (Re-Act Loop Feed) -->
-      <div id="pa-feed-container" style="display: none; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0.75rem;">
-        <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: #38bdf8; margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
-          <span>Page-Agent Yürütme Akışı (Observe ➔ Think ➔ Act):</span>
-          <span id="pa-status-badge" style="color: #34d399;">Çalışıyor...</span>
-        </div>
-        <div id="pa-steps-log" style="font-family: monospace; font-size: 0.75rem; color: #cbd5e1; display: flex; flex-direction: column; gap: 0.35rem; max-height: 180px; overflow-y: auto;">
-        </div>
-      </div>
-
-      <!-- Result Card -->
-      <div id="pa-result-card" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; padding: 0.75rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-          <strong style="color: #34d399; font-size: 0.85rem;">İşlem Tamamlandı (Sıfır İnsan Müdahalesi)</strong>
-          <span id="pa-ticket-badge" class="badge" style="background: rgba(6, 182, 212, 0.2); color: #38bdf8;"></span>
-        </div>
-        <p id="pa-result-summary" style="font-size: 0.75rem; color: #e2e8f0; margin-bottom: 0.5rem;"></p>
-        <a id="pa-ticket-link" href="#" class="btn btn-primary" style="display: inline-block; font-size: 0.75rem; padding: 0.35rem 0.75rem; text-decoration: none;">
-          Oluşturulan Bileti & Raporu Aç &rarr;
-        </a>
+        <div style="font-size:0.68rem; color:#64748b;">Autonomous Observer • Ragie RAG • Re-Act Loop</div>
       </div>
     </div>
+    <button onclick="paTogglePanel()" style="background:none;border:none;color:#475569;font-size:1.2rem;cursor:pointer;">&times;</button>
+  </div>
 
-    <!-- Natural Language Command Input -->
-    <div style="padding: 0.85rem 1.25rem; background: rgba(0, 0, 0, 0.4); border-top: 1px solid rgba(255,255,255,0.08);">
-      <form onsubmit="submitPageAgentCustom(event)" style="display: flex; gap: 0.5rem;">
-        <input type="text" id="pa-custom-input" placeholder="Örn: Bu tespiti incele, otomatik ticket aç, RAG'e sor ve raporla..." style="flex: 1; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 0.5rem 0.75rem; color: #ffffff; font-size: 0.8rem; outline: none;">
-        <button type="submit" id="pa-submit-btn" style="background: #06b6d4; color: #000000; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-weight: 600; font-size: 0.8rem; cursor: pointer;">
-          Çalıştır
-        </button>
+  <!-- Engine status bar -->
+  <div style="display:flex; gap:0.75rem; padding:0.45rem 1.1rem; background:rgba(0,0,0,0.35); border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.68rem; color:#64748b;">
+    <span>LLM: <strong style="color:#a78bfa;"><%= ENV["GROK_API_KEY"].present? ? "Grok xAI" : "Local Engine" %></strong></span>
+    <span>•</span>
+    <span>RAG: <strong style="color:#22d3ee;"><%= ENV["RAGIE_API_KEY"].present? ? "Ragie.ai Cloud" : "Ragie Local" %></strong></span>
+    <span>•</span>
+    <span id="pa-run-count" style="color:#475569;">0 otomatik çalışma</span>
+  </div>
+
+  <!-- Scrollable log + human chat area -->
+  <div id="pa-panel-body" style="flex:1; overflow-y:auto; padding:0.85rem 1.1rem; display:flex; flex-direction:column; gap:0.6rem; min-height: 180px;">
+    <div id="pa-panel-log" style="display:flex; flex-direction:column; gap:0.35rem; font-size:0.75rem; font-family:monospace; color:#94a3b8;"></div>
+
+    <!-- Human-input chat (only shown when agent needs human) -->
+    <div id="pa-human-chat" style="display:none; margin-top:0.5rem;">
+      <div style="font-size:0.7rem; font-weight:600; color:#f59e0b; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.35rem;">
+        <span style="animation: pa-blink 1s step-end infinite;">🟡</span>
+        Agent sizin görüşünüzü bekliyor:
+      </div>
+      <div id="pa-chat-messages" style="background:rgba(0,0,0,0.3); border:1px solid rgba(245,158,11,0.3); border-radius:6px; padding:0.6rem; max-height:120px; overflow-y:auto; font-size:0.75rem; color:#e2e8f0; margin-bottom:0.4rem; display:flex; flex-direction:column; gap:0.3rem;"></div>
+      <form onsubmit="paHumanReply(event)" style="display:flex; gap:0.4rem;">
+        <input id="pa-chat-input" type="text" placeholder="Mesajınızı yazın..." style="flex:1; background:rgba(15,23,42,0.8); border:1px solid rgba(245,158,11,0.4); border-radius:6px; padding:0.45rem 0.7rem; color:#fff; font-size:0.78rem; outline:none;">
+        <button type="submit" style="background:#f59e0b; color:#000; border:none; border-radius:6px; padding:0.45rem 0.9rem; font-weight:600; font-size:0.78rem; cursor:pointer;">Gönder</button>
       </form>
     </div>
   </div>
+
+  <!-- Manual trigger row (for additional instructions) -->
+  <div style="padding:0.7rem 1.1rem; background:rgba(0,0,0,0.35); border-top:1px solid rgba(255,255,255,0.07); display:flex; gap:0.4rem;">
+    <input id="pa-manual-input" type="text" placeholder="Ek talimat ver veya soru sor..." style="flex:1; background:rgba(15,23,42,0.8); border:1px solid rgba(255,255,255,0.12); border-radius:6px; padding:0.45rem 0.7rem; color:#fff; font-size:0.78rem; outline:none;">
+    <button onclick="paManualRun()" style="background:#06b6d4; color:#000; border:none; border-radius:6px; padding:0.45rem 0.9rem; font-weight:600; font-size:0.78rem; cursor:pointer;">▶ Çalıştır</button>
+  </div>
 </div>
 
+<style>
+@keyframes pa-idle-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(6,182,212,0.5); }
+  50%      { box-shadow: 0 0 0 10px rgba(6,182,212,0); }
+}
+@keyframes pa-working-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(250,204,21,0.7); }
+  50%      { box-shadow: 0 0 0 14px rgba(250,204,21,0); }
+}
+@keyframes pa-slide-in {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+@keyframes pa-blink {
+  0%,100% { opacity:1; } 50% { opacity:0.2; }
+}
+#pa-orb:hover { transform: scale(1.1); }
+#pa-orb.working {
+  background: linear-gradient(135deg, #facc15, #f97316);
+  animation: pa-working-pulse 1.2s ease-in-out infinite;
+}
+#pa-orb.done {
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  animation: pa-idle-pulse 3s ease-in-out infinite;
+}
+#pa-orb.waiting-human {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  animation: pa-working-pulse 1s ease-in-out infinite;
+}
+</style>
+
 <script>
-  function togglePageAgent() {
-    const hud = document.getElementById("page-agent-hud");
-    const isHidden = hud.style.display === "none" || hud.style.display === "";
-    hud.style.display = isHidden ? "flex" : "none";
-    if (isHidden) {
-      observeCurrentPageDOM();
-    }
+(function() {
+  // ── State ────────────────────────────────────────────────────────────────
+  let paRunCount = 0;
+  let paHumanNeeded = false;
+  let paHumanConversation = [];
+  let paPollingTimer = null;
+  let paCurrentTicketUrl = null;
+  const PA_POLL_INTERVAL_MS = 60000; // re-check every 60 s
+  const PA_BOOT_DELAY_MS   = 2500;  // wait 2.5s after page load
+
+  // ── Bootstrap: auto-start after page ready ───────────────────────────────
+  document.addEventListener("DOMContentLoaded", function() {
+    paAppendPanelLog("sys", "Agent başlatıldı — sayfa taranıyor...");
+    setTimeout(paAutoRun, PA_BOOT_DELAY_MS);
+  });
+
+  // ── Auto-run entry point ─────────────────────────────────────────────────
+  function paAutoRun(customInstruction) {
+    const instruction = customInstruction ||
+      "Bu sayfayı otomatik tara, aktif güvenlik tespitlerini bul, Ragie RAG ile runbook çek, ticket aç ve sıfır insan müdahalesiyle raporla";
+    paSetOrbState("working");
+    paRunCount++;
+    document.getElementById("pa-run-count").innerText = paRunCount + " otomatik çalışma";
+    paAppendPanelLog("observe", "DOM gözlemleniyor — URL: " + window.location.pathname);
+
+    const ctx = paGetContext();
+
+    fetch("/page_agent/execute", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": (document.querySelector('meta[name="csrf-token"]') || {}).content || ""
+      },
+      body: JSON.stringify({
+        instruction: instruction,
+        page_url: window.location.pathname,
+        page_context: ctx,
+        human_intervention: false
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) { paHandleResult(data); })
+    .catch(function(err) { paHandleError(err.message); });
   }
+  window.paAutoRun = paAutoRun;
 
-  function observeCurrentPageDOM() {
-    const pageUrlElem = document.getElementById("pa-page-url");
-    const pageDetElem = document.getElementById("pa-page-detection");
-    
-    pageUrlElem.innerText = window.location.pathname;
-
-    // In-Page DOM extraction (Observe phase)
-    const titleHeader = document.querySelector("h1, .page-header-title");
-    const hostElement = document.querySelector(".telemetry-value, [data-hostname]");
-    const processElement = document.querySelector(".tree-node.target strong, [data-process]");
-
-    let desc = "Sentriq AI Güvenlik Paneli";
-    if (window.location.pathname.includes("/detections/")) {
-      const match = window.location.pathname.match(/\/detections\/(\d+)/);
-      const detId = match ? match[1] : "";
-      desc = `Tespit #${detId}: ${titleHeader ? titleHeader.innerText.trim() : 'Aktif Güvenlik Uyarısı'}`;
-    } else if (window.location.pathname.includes("/tickets")) {
-      desc = "Agent Biletleri & SOC İnceleme Listesi";
-    }
-
-    pageDetElem.innerText = desc;
-  }
-
-  function getPageContext() {
-    const context = {
-      url: window.location.pathname,
-      title: document.title
-    };
-
-    const match = window.location.pathname.match(/\/detections\/(\d+)/);
-    if (match) {
-      context.detection_id = parseInt(match[1], 10);
-    }
-
-    const hostElem = document.querySelector(".telemetry-item:nth-child(1) .telemetry-value");
-    if (hostElem) context.hostname = hostElem.innerText.trim();
-
-    return context;
-  }
-
-  async function runPageAgentCommand(instruction) {
-    const feed = document.getElementById("pa-feed-container");
-    const log = document.getElementById("pa-steps-log");
-    const statusBadge = document.getElementById("pa-status-badge");
-    const resultCard = document.getElementById("pa-result-card");
-    const submitBtn = document.getElementById("pa-submit-btn");
-
-    feed.style.display = "block";
-    resultCard.style.display = "none";
-    log.innerHTML = "";
-    statusBadge.innerText = "Yürütülüyor...";
-    statusBadge.style.color = "#38bdf8";
-    if (submitBtn) submitBtn.disabled = true;
-
-    // Step 1: Client-Side Observe
-    appendLog("👁️ OBSERVE", `Sayfa DOM verileri toplandı (URL: ${window.location.pathname}).`);
-
-    try {
-      const response = await fetch("/page_agent/execute", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || ""
-        },
-        body: JSON.stringify({
-          instruction: instruction,
-          page_url: window.location.pathname,
-          page_context: getPageContext(),
-          human_intervention: false
-        })
+  // ── Result handler ───────────────────────────────────────────────────────
+  function paHandleResult(data) {
+    // render steps into panel log
+    if (data.steps && data.steps.length) {
+      data.steps.forEach(function(s) {
+        paAppendPanelLog(s.phase, s.message);
       });
+    }
 
-      const data = await response.json();
+    if (data.success && data.ticket) {
+      paCurrentTicketUrl = data.ticket.url;
+      paSetOrbState("done");
+      paShowToast(
+        "✅ Ticket Oluşturuldu",
+        data.ticket.ticket_number + " — Ragie [" + (data.ragie_provider || "local") + "] runbook bağlandı. Sıfır insan müdahalesi.",
+        [{ label: "Raporu Gör →", href: data.ticket.url }]
+      );
+      // schedule next polling cycle
+      clearTimeout(paPollingTimer);
+      paPollingTimer = setTimeout(paAutoRun, PA_POLL_INTERVAL_MS);
 
-      if (data.steps && data.steps.length > 0) {
-        data.steps.forEach(step => {
-          const icon = step.phase === "observe" ? "👁️ OBSERVE" : (step.phase === "think" ? "🧠 THINK" : "⚡ ACT");
-          appendLog(icon, step.message);
-        });
-      }
+    } else if (!data.success && data.needs_human) {
+      // Agent explicitly requests human input
+      paSetOrbState("waiting-human");
+      paHumanNeeded = true;
+      paOpenPanelForHuman(data.human_question || "Agent sizin görüşünüzü istiyor.");
 
-      if (data.success && data.ticket) {
-        statusBadge.innerText = "Tamamlandı";
-        statusBadge.style.color = "#34d399";
-
-        resultCard.style.display = "block";
-        document.getElementById("pa-ticket-badge").innerText = data.ticket.ticket_number + " (" + data.ticket.status + ")";
-        document.getElementById("pa-result-summary").innerText = `Bilet ${data.ticket.ticket_number} başarıyla açıldı, Ragie RAG [${data.ragie_provider}] runbook'ları bağlandı ve sıfır insan müdahalesiyle çözüldü.`;
-        
-        const link = document.getElementById("pa-ticket-link");
-        link.href = data.ticket.url;
-        link.innerText = `${data.ticket.ticket_number} Raporunu Aç &rarr;`;
-      } else {
-        statusBadge.innerText = "Hata";
-        statusBadge.style.color = "#ef4444";
-        appendLog("❌ HATA", data.error || "İşlem tamamlanamadı.");
-      }
-    } catch (err) {
-      statusBadge.innerText = "Hata";
-      statusBadge.style.color = "#ef4444";
-      appendLog("❌ HATA", err.message);
-    } finally {
-      if (submitBtn) submitBtn.disabled = false;
+    } else if (!data.success) {
+      paHandleError(data.error || "Bilinmeyen hata");
     }
   }
 
-  function appendLog(phase, message) {
-    const log = document.getElementById("pa-steps-log");
+  function paHandleError(msg) {
+    paSetOrbState("done"); // fallback to idle
+    paAppendPanelLog("error", "Hata: " + msg);
+    paShowToast("⚠️ Agent Uyarısı", msg, []);
+    clearTimeout(paPollingTimer);
+    paPollingTimer = setTimeout(paAutoRun, PA_POLL_INTERVAL_MS);
+  }
+
+  // ── Human chat (agent asks → human replies) ──────────────────────────────
+  function paOpenPanelForHuman(question) {
+    document.getElementById("pa-panel").style.display = "flex";
+    document.getElementById("pa-human-chat").style.display = "block";
+    paChatAppend("agent", question);
+    paShowToast(
+      "🟡 Görüşünüz Gerekiyor",
+      question,
+      [{ label: "Yanıtla →", onclick: "paTogglePanel()" }]
+    );
+  }
+
+  function paHumanReply(e) {
+    e.preventDefault();
+    const input = document.getElementById("pa-chat-input");
+    const val = input.value.trim();
+    if (!val) return;
+    input.value = "";
+    paChatAppend("human", val);
+    paHumanConversation.push({ role: "human", text: val });
+    paHumanNeeded = false;
+    document.getElementById("pa-human-chat").style.display = "none";
+    // Re-run with human reply as context
+    paAutoRun("İnsan geri bildirimi: " + val + ". Bu bilgi ışığında analizi tamamla ve sıfır ek insan müdahalesiyle raporla.");
+  }
+  window.paHumanReply = paHumanReply;
+
+  function paChatAppend(role, text) {
+    const box = document.getElementById("pa-chat-messages");
     const div = document.createElement("div");
-    div.style.padding = "2px 0";
-    div.innerHTML = `<strong style="color: #38bdf8;">[${phase}]</strong> ${escapeHtml(message)}`;
+    div.style.cssText = role === "agent"
+      ? "color:#f59e0b; padding:2px 0;"
+      : "color:#38bdf8; padding:2px 0; text-align:right;";
+    div.innerHTML = (role === "agent" ? "🤖 " : "👤 ") + escHtml(text);
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // ── Manual run from panel input ──────────────────────────────────────────
+  function paManualRun() {
+    const input = document.getElementById("pa-manual-input");
+    const val = input.value.trim();
+    input.value = "";
+    paAutoRun(val || undefined);
+  }
+  window.paManualRun = paManualRun;
+
+  // ── Panel toggle (only via orb click) ────────────────────────────────────
+  function paTogglePanel() {
+    const panel = document.getElementById("pa-panel");
+    const toast  = document.getElementById("pa-toast");
+    const visible = panel.style.display === "flex";
+    panel.style.display = visible ? "none" : "flex";
+    if (!visible) toast.style.display = "none";
+  }
+  window.paTogglePanel = paTogglePanel;
+
+  // ── Toast ────────────────────────────────────────────────────────────────
+  function paShowToast(title, body, actions) {
+    document.getElementById("pa-toast-title").innerHTML = title;
+    document.getElementById("pa-toast-body").innerText  = body;
+    const actionsEl = document.getElementById("pa-toast-actions");
+    actionsEl.innerHTML = "";
+    (actions || []).forEach(function(a) {
+      const btn = document.createElement("a");
+      btn.innerText = a.label;
+      btn.style.cssText = "background:#06b6d4; color:#000; border-radius:5px; padding:0.3rem 0.7rem; font-size:0.72rem; font-weight:600; text-decoration:none; cursor:pointer;";
+      if (a.href)    btn.href = a.href;
+      if (a.onclick) btn.setAttribute("onclick", a.onclick);
+      actionsEl.appendChild(btn);
+    });
+    const toast = document.getElementById("pa-toast");
+    toast.style.display = "block";
+    // auto-hide after 8 s (unless human needed)
+    if (!paHumanNeeded) {
+      setTimeout(function() { toast.style.display = "none"; }, 8000);
+    }
+  }
+
+  // ── Panel log ────────────────────────────────────────────────────────────
+  function paAppendPanelLog(phase, msg) {
+    const log = document.getElementById("pa-panel-log");
+    const icons = { observe:"👁️", think:"🧠", act:"⚡", error:"❌", sys:"🔧" };
+    const colors = { observe:"#94a3b8", think:"#a78bfa", act:"#34d399", error:"#ef4444", sys:"#64748b" };
+    const div = document.createElement("div");
+    div.style.color = colors[phase] || "#94a3b8";
+    div.innerHTML = "<strong>[" + (icons[phase] || "•") + " " + phase.toUpperCase() + "]</strong> " + escHtml(msg);
     log.appendChild(div);
     log.scrollTop = log.scrollHeight;
   }
 
-  function escapeHtml(text) {
-    const div = document.createElement("div");
-    div.innerText = text;
-    return div.innerHTML;
+  // ── Orb state ────────────────────────────────────────────────────────────
+  function paSetOrbState(state) {
+    const orb = document.getElementById("pa-orb");
+    orb.className = state;
+    const icons = { working:"⏳", done:"🤖", "waiting-human":"🟡" };
+    document.getElementById("pa-orb-icon").innerText = icons[state] || "🤖";
   }
 
-  function submitPageAgentCustom(e) {
-    e.preventDefault();
-    const input = document.getElementById("pa-custom-input");
-    const val = input.value.trim();
-    if (!val) return;
-    runPageAgentCommand(val);
-    input.value = "";
+  // ── Page context ─────────────────────────────────────────────────────────
+  function paGetContext() {
+    const ctx = { url: window.location.pathname, title: document.title };
+    const m = window.location.pathname.match(/\/detections\/(\d+)/);
+    if (m) ctx.detection_id = parseInt(m[1], 10);
+    const h = document.querySelector(".telemetry-item:nth-child(1) .telemetry-value");
+    if (h) ctx.hostname = h.innerText.trim();
+    return ctx;
   }
+
+  // ── HTML escape ──────────────────────────────────────────────────────────
+  function escHtml(t) {
+    const d = document.createElement("div");
+    d.innerText = t;
+    return d.innerHTML;
+  }
+})();
 </script>

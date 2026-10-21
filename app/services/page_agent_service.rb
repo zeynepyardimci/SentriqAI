@@ -103,6 +103,7 @@ class PageAgentService
 
     {
       success: true,
+      needs_human: false,
       ticket: {
         id: ticket.id,
         ticket_number: ticket.ticket_number,
@@ -121,6 +122,7 @@ class PageAgentService
     log_step("error", "Page-Agent execution failed: #{e.message}")
     {
       success: false,
+      needs_human: false,
       error: e.message,
       steps: @steps
     }
