@@ -30,6 +30,7 @@
 ## Yapılanlar ve kanıt
 
 ### Gerçek Commit Bağlantıları
+- Commit `8794878`: `feat: implement AI Avatar live security copilot, deep 10-step investigation, speech synthesis/recognition, and intent action execution`
 - Commit `dd9097b`: `feat: implement agent-first SOC triage flow, SLA travel_to rules, HITL decision, and comprehensive test suite`
 - Commit `454256c`: `feat: complete Alibaba Page-Agent ReAct engine with live DOM visual highlighting, quick prompts, and free Groq/Grok API integration`
 - Commit `5723d29`: `feat: fully autonomous Page-Agent — auto-starts on page load, polls every 60s, human chat drawer on demand, no button required`
@@ -45,11 +46,11 @@
 - **Komut:** `bundle exec rails test`
 - **Gerçek Çıktı:**
   ```text
-  Run options: --seed 39383
+  Run options: --seed 46887
   # Running:
-  ........................................................
-  Finished in 26.430150s, 2.1188 runs/s, 11.1615 assertions/s.
-  56 runs, 295 assertions, 0 failures, 0 errors, 0 skips
+  .....................................................................
+  Finished in 49.885596s, 1.3832 runs/s, 8.0584 assertions/s.
+  69 runs, 402 assertions, 0 failures, 0 errors, 0 skips
   ```
 - **Kapsanan ve Doğrulanan Başlıca Testler:**
   1. **Agent API Bilet Açma & Kalıcılık:** `POST /api/v1/tickets` üzerinden bilet açılması, veritabanına kaydedilmesi ve `SQT-` formatında bilet numarası alması doğrulandı (`test_1`).
@@ -64,31 +65,25 @@
   10. **İnsan Onayı ve Simüle İzolasyon:** `POST /api/v1/tickets/:id/human_decision` üzerinden onay verildiğinde biletin `resolved` durumuna geçtiği, `simulated_host_isolation_executed` aksiyonunun ve denetim kaydının (AuditEvent) oluşturulduğu doğrulandı (`test_human_decision_applied`).
   11. **Durum Makinesi Kısıtlamaları:** Geçersiz durum geçişlerinin (`resolved` durumundan doğrudan `pending_review` durumuna geçiş) engellendiği test edildi (`TicketTest#test_invalid_status_transition`).
   12. **Zaman Kuralı & SLA Testleri (`travel_to`):** Rails `travel_to` kullanılarak 10. dakikada (SLA 15 dk eşiği öncesi) durumun korunduğu; 20. dakikada (eşik sonrası) biletin `pending_review` eskalasyonuna geçirildiği ve `ticket_sla_breached` denetim kaydının atıldığı kanıtlandı.
+  13. **Copilot Mesaj Modeli Testi:** `CopilotMessage` modelinde rol doğrulama (`user`, `avatar`, `system`), içerik zorunluluğu ve kronolojik sıralama doğrulandı (`CopilotMessageTest`).
+  14. **10 Aşamalı Derinlemesine Olay Araştırması:** `DeepInvestigationService` ile telemetri, zaman çizelgesi, süreç soyağacı, MITRE senaryoları, kök neden hipotezleri, kanıt boşlukları, kurumsal runbook ve ikili rapor (Yönetici Özeti + Teknik Rapor) üretimi ve bilet kaydına kalıcı olarak işlenmesi kanıtlandı (`DeepInvestigationServiceTest`).
+  15. **Canlı AI Avatar & Doğal Dil Niyet Eşleme:** `AvatarConversationService` ile sesli/yazılı soruların yapılandırılmış niyetlere (`create_ticket`, `root_cause`, `prevention`, `escalate_to_human`, `summarize`) dönüştürülmesi, kanıtlanmış bulguların çıkarımlardan ayrılması, konuşma metni üretimi ve denetim kaydı oluşturulması test edildi (`AvatarConversationServiceTest`).
+  16. **Copilot Studio Entegrasyon Testleri:** `/copilot` stüdyosu, `/copilot/chat` endpoint'i, `/copilot/autonomous_triage` ile sıfır dokunuş bilet açma ve `/copilot/load_scenario` senaryo geçişleri doğrulandı (`CopilotControllerTest`).
 - **Güvenlik Taraması (SAST):** `bundle exec brakeman -q`
   ```text
-  Controllers: 12 | Models: 12 | Templates: 12 | Errors: 0 | Security Warnings: 0 (No warnings found)
+  Controllers: 13 | Models: 13 | Templates: 13 | Errors: 0 | Security Warnings: 0 (No warnings found)
   ```
 
 ### Canlı Demo Adımları
 1. Sunucu başlatılır: `bundle exec rails server -b 127.0.0.1 -p 3000`
-2. **Adım 1 - Agent API Çağrısı:** Terminalden cURL isteği gönderilir:
-   ```bash
-   curl -X POST http://127.0.0.1:3000/api/v1/tickets \
-     -H "Authorization: Bearer test-valid-agent-token-12345" \
-     -H "Content-Type: application/json" \
-     -H "Idempotency-Key: soar-demo-event-001" \
-     -d '{
-       "title": "Volume Shadow Copy Deletion via vssadmin",
-       "description": "vssadmin.exe delete shadows /all /quiet executed on WKSTN-SRV-01",
-       "priority": "critical",
-       "auto_triage": true
-     }'
-   ```
-3. **Adım 2 - LLM Kararı İncelemesi:** API yanıtında yapılandırılmış JSON döner: `severity: critical`, `confidence: 88`, `requires_human_approval: true`, `matched_runbook: "RB-0201: Ransomware Rapid Containment"`.
-4. **Adım 3 - Arayüzde Bilet Doğrulama:** Tarayıcıda `http://127.0.0.1:3000/tickets` açılır; API'den gelen bilet listede görünür, durumu `pending_review` olarak kilitlenmiştir.
-5. **Adım 4 - İnsan Onayı ve Simüle İzolasyon:** Bilet detayına (`/tickets/:id`) girilir; olay özeti, telemetri, LLM gerekçesi ve runbook prosedürü incelenir. "Karantinaya Al (Simüle İzolasyon)" butonuna basılır. Bilet durumu `resolved` olur ve denetim günlüğünde simüle aksiyon belgelenir.
-6. **Adım 5 - Düşük Risk Senaryosu Karşılaştırması:** "Dünkü tatbikat tamamlandı" içerikli olay açılır; sistemin düşük öncelik verdiği, ancak bileti tek taraflı silip kapatmadığı gösterilir.
-7. **Adım 6 - SLA Kontrol Görevi:** `bundle exec rake sentriq:check_sla` çalıştırılarak süresi dolan açık alarmların otomatik eskalasyonu gösterilir.
+2. **Adım 1 - AI Copilot & Canlı Avatar Stüdyosu:** Tarayıcıda `http://127.0.0.1:3000/copilot` açılır.
+3. **Adım 2 - Görsel Avatar Durumları:** Ekranda kendine ait siber AI avatarı yer alır. Mikrofon butonuna basıldığında avatar `listening` (yeşil halka/dalga) durumuna geçer; soru işlenirken `thinking` (mor dönen nöral yörünge); sesli yanıt verirken `speaking` (altın frekans dalgaları) durumunu görsel olarak gösterir.
+4. **Adım 3 - Sesli & Yazılı Etkileşim:** Analist mikrofon veya hızlı prompt butonlarıyla soru sorar (örn: *"Saldırının olası kök nedeni nedir?"*). Avatar tarayıcının `SpeechSynthesis` motoruyla yanıtı seslendirir ve yazılı sohbet paneline ekler.
+5. **Adım 4 - Doğal Dil ile Eylem Gerçekleştirme:** Analist avatara *"Bu olay için ticket oluştur"* dediğinde backend `Ticket.create!` işlemini tamamlar; avatar *"Ticket oluşturuldu: SQT-..."* diyerek bilet numarasını sesli bildirir.
+6. **Adım 5 - Sayfa İçi Otonom Ajan:** "Otonom Triyajı Başlat" butonuna tıklanır; 7 aşamalı canlı boru hattı (Olay Alındı ➔ Telemetri ➔ Runbook ➔ LLM Analizi ➔ Karar ➔ Bilet ➔ İnsan Onayı) terminal günlükleriyle adım adım tamamlanır.
+7. **Adım 6 - 10 Adımlı Derinlemesine İnceleme & İki Rapor:** Sağ paneldeki sekmelerden telemetri, kronolojik zaman çizelgesi, süreç ağacı ve kök neden hipotezleri gezilir. "Yönetici Özeti" sekmesindeki "Avatar ile Seslendir" butonuna basılarak rapor özetinin avatar tarafından seslendirilmesi kanıtlanır.
+8. **Adım 7 - Kontrollü Senaryo Geçişi:** "Senaryo A (Düşük Risk / Tatbikat)" ve "Senaryo B (Kritik LOLBin / Fidye Saldırısı)" butonlarıyla olaylar anında değiştirilerek test edilir.
+9. **Adım 8 - SLA ve API Biletleme:** Terminalden cURL ile harici bilet açılması (`POST /api/v1/tickets`) ve `rake sentriq:check_sla` ile SLA eskalasyonu doğrulanır.
 
 ### Tamamlanmayan Özellikler
 - **Canlı Public Bulut URL'si:** Kullanıcı tarafından harici bir Render API anahtarı veya canlı sunucu ortamı atanmadığı için uygulama genel internetteki canlı bir Render URL'si yerine yerel sunucu (`http://127.0.0.1:3000`) ve Docker ortamında uçtan uca doğrulanmıştır. `render.yaml` ve `Dockerfile` üretime hazır teslim edilmiştir.
