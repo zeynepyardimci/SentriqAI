@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_23_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -26,6 +26,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_000002) do
     t.index ["created_at"], name: "index_audit_events_on_created_at"
     t.index ["trackable_type", "trackable_id"], name: "index_audit_events_on_trackable_type_and_trackable_id"
     t.index ["user_id"], name: "index_audit_events_on_user_id"
+  end
+
+  create_table "copilot_messages", force: :cascade do |t|
+    t.bigint "detection_id"
+    t.bigint "ticket_id"
+    t.bigint "user_id"
+    t.string "role", null: false
+    t.text "content", null: false
+    t.string "intent"
+    t.boolean "audio_spoken", default: false
+    t.string "action_taken"
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["detection_id", "created_at"], name: "index_copilot_messages_on_detection_id_and_created_at"
+    t.index ["detection_id"], name: "index_copilot_messages_on_detection_id"
+    t.index ["ticket_id", "created_at"], name: "index_copilot_messages_on_ticket_id_and_created_at"
+    t.index ["ticket_id"], name: "index_copilot_messages_on_ticket_id"
+    t.index ["user_id"], name: "index_copilot_messages_on_user_id"
   end
 
   create_table "detections", force: :cascade do |t|
@@ -190,6 +209,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_000002) do
   end
 
   add_foreign_key "audit_events", "users"
+  add_foreign_key "copilot_messages", "detections"
+  add_foreign_key "copilot_messages", "tickets"
+  add_foreign_key "copilot_messages", "users"
   add_foreign_key "detections", "users", column: "assigned_to_id"
   add_foreign_key "evidences", "detections"
   add_foreign_key "investigation_notes", "investigations"

@@ -63,6 +63,7 @@
       </div>
 
       <nav class="nav-links">
+        <%= link_to "🎙️ AI Copilot & Avatar", copilot_path, class: "nav-link #{'active' if controller_name == 'copilot'}", style: "color: #38bdf8; font-weight: 700;" %>
         <%= link_to "Detections Triage", detections_path, class: "nav-link #{'active' if controller_name == 'detections'}" %>
         <%= link_to "Agent Tickets", tickets_path, class: "nav-link #{'active' if controller_name == 'tickets' && action_name != 'demo'}" %>
         <%= link_to "Agent Activity Demo", demo_tickets_path, class: "nav-link #{'active' if controller_name == 'tickets' && action_name == 'demo'}" %>

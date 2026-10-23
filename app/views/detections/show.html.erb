@@ -21,8 +21,11 @@
       <p style="color: var(--text-secondary); font-size: 0.9rem;"><%= @detection.description %></p>
     </div>
 
-    <!-- Primary Action: Run AI Investigation -->
+    <!-- Primary Action: Run AI Investigation & AI Avatar -->
     <div class="detail-actions">
+      <%= link_to copilot_path(detection_id: @detection.id), class: "btn btn-primary", style: "background: rgba(6, 182, 212, 0.2); border-color: var(--cyan-primary); color: #38bdf8; display: inline-flex; align-items: center; gap: 0.4rem;" do %>
+        <span>🎙️ AI Avatar ile İncele</span>
+      <% end %>
       <%= button_to investigate_detection_path(@detection), method: :post, class: "btn btn-agent", data: { turbo_confirm: "Start autonomous AI investigation and RAG retrieval?" } do %>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>

@@ -14,6 +14,7 @@ class Ticket < ApplicationRecord
   belongs_to :user, optional: true
   belongs_to :human_reviewer, class_name: "User", optional: true
   has_many :ticket_notes, dependent: :destroy
+  has_many :copilot_messages, dependent: :nullify
   has_many :audit_events, as: :trackable, dependent: :destroy
 
   validates :ticket_number, presence: true, uniqueness: true

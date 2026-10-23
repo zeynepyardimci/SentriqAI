@@ -17,6 +17,7 @@ class Detection < ApplicationRecord
   has_many :evidences, dependent: :destroy
   has_many :investigations, dependent: :destroy
   has_many :tickets, dependent: :nullify
+  has_many :copilot_messages, dependent: :nullify
   has_many :audit_events, as: :trackable, dependent: :destroy
 
   validates :title, presence: true

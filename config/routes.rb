@@ -31,6 +31,13 @@ Rails.application.routes.draw do
   resource :session, only: [:new, :create, :destroy]
   get "audit_trail", to: "audit_events#index"
 
+  # AI Avatar & Autonomous SOC Copilot Studio
+  get "copilot", to: "copilot#index"
+  post "copilot/chat", to: "copilot#chat"
+  post "copilot/autonomous_triage", to: "copilot#autonomous_triage"
+  get "copilot/investigation_data", to: "copilot#investigation_data"
+  post "copilot/load_scenario", to: "copilot#load_scenario"
+
   # Page-Agent In-Page GUI & Ragie RAG Endpoints
   post "page_agent/execute", to: "page_agent#execute"
   post "page_agent/ragie_search", to: "page_agent#ragie_search"

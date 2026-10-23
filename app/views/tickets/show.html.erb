@@ -25,6 +25,9 @@
     <div>
       <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Originating Agent</div>
       <div style="font-weight: 600; color: #38bdf8; font-family: var(--font-mono);"><%= @ticket.assigned_agent || "External SOAR Agent" %></div>
+      <%= link_to copilot_path(ticket_id: @ticket.id), class: "btn btn-primary", style: "background: rgba(6, 182, 212, 0.2); border-color: var(--cyan-primary); color: #38bdf8; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; font-size: 0.8rem; margin-top: 0.5rem;" do %>
+        <span>🎙️ AI Avatar ile Görüş</span>
+      <% end %>
     </div>
   </div>
 

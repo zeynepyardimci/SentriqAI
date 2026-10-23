@@ -701,3 +701,560 @@ a:hover {
   color: var(--text-muted);
   margin-top: auto;
 }
+
+/* ==========================================================
+   AI AVATAR & AUTONOMOUS SOC COPILOT STUDIO STYLES
+   ========================================================== */
+
+.copilot-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Scenario & Target Bar */
+.copilot-top-bar {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.scenario-pill-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.scenario-btn {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 9999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.scenario-btn:hover {
+  border-color: var(--cyan-primary);
+  color: var(--text-primary);
+}
+
+.scenario-btn.active-scenario {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: var(--cyan-primary);
+  color: var(--cyan-primary);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+}
+
+/* Studio Main 2-Column Grid */
+.copilot-grid {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .copilot-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Avatar Card & Interactive Chat */
+.avatar-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+/* Avatar Visual Display */
+.avatar-visual-stage {
+  background: radial-gradient(circle at center, rgba(139, 92, 246, 0.15) 0%, rgba(11, 15, 25, 0.95) 70%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Avatar Canvas / Orb Container */
+.avatar-orb-container {
+  width: 140px;
+  height: 140px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+/* Central Cyber Eye / Core */
+.avatar-core {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+  border: 2px solid var(--cyan-primary);
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.avatar-core svg {
+  width: 48px;
+  height: 48px;
+  filter: drop-shadow(0 0 6px var(--cyan-primary));
+  transition: all 0.3s ease;
+}
+
+/* Orbiting Neural Rings */
+.avatar-ring-outer {
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(139, 92, 246, 0.4);
+  animation: rotateOrbit 12s linear infinite;
+}
+
+.avatar-ring-inner {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  animation: rotateOrbitCounter 8s linear infinite;
+}
+
+@keyframes rotateOrbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rotateOrbitCounter {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+/* State Based Visual Styling */
+.avatar-stage-idle .avatar-core {
+  border-color: var(--cyan-primary);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+}
+
+.avatar-stage-listening .avatar-core {
+  border-color: #10b981;
+  box-shadow: 0 0 35px rgba(16, 185, 129, 0.7);
+  animation: pulseListen 1.2s ease-in-out infinite alternate;
+}
+
+.avatar-stage-thinking .avatar-core {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 35px rgba(139, 92, 246, 0.8);
+  animation: spinGlow 2s linear infinite;
+}
+
+.avatar-stage-speaking .avatar-core {
+  border-color: #f59e0b;
+  box-shadow: 0 0 40px rgba(245, 158, 11, 0.8);
+  animation: speakOscillate 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulseListen {
+  from { transform: scale(0.98); }
+  to { transform: scale(1.06); }
+}
+
+@keyframes spinGlow {
+  0% { transform: rotate(0deg); filter: hue-rotate(0deg); }
+  100% { transform: rotate(360deg); filter: hue-rotate(90deg); }
+}
+
+@keyframes speakOscillate {
+  from { transform: scale(1.0); }
+  to { transform: scale(1.08); }
+}
+
+/* Audio Waveform Visualizer Bars */
+.avatar-audio-wave {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  margin-top: 0.5rem;
+}
+
+.wave-bar {
+  width: 4px;
+  height: 6px;
+  background: var(--cyan-primary);
+  border-radius: 2px;
+  transition: height 0.15s ease;
+}
+
+.avatar-stage-speaking .wave-bar {
+  background: #f59e0b;
+  animation: waveBounce 0.6s ease-in-out infinite alternate;
+}
+
+.avatar-stage-speaking .wave-bar:nth-child(1) { animation-delay: 0.1s; }
+.avatar-stage-speaking .wave-bar:nth-child(2) { animation-delay: 0.3s; }
+.avatar-stage-speaking .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+.avatar-stage-speaking .wave-bar:nth-child(4) { animation-delay: 0.4s; }
+.avatar-stage-speaking .wave-bar:nth-child(5) { animation-delay: 0.15s; }
+.avatar-stage-speaking .wave-bar:nth-child(6) { animation-delay: 0.35s; }
+.avatar-stage-speaking .wave-bar:nth-child(7) { animation-delay: 0.25s; }
+
+@keyframes waveBounce {
+  0% { height: 4px; }
+  100% { height: 22px; }
+}
+
+/* State Badge */
+.avatar-state-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+.avatar-state-pill .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.avatar-stage-idle .avatar-state-pill { color: var(--cyan-primary); border-color: rgba(6, 182, 212, 0.3); }
+.avatar-stage-idle .avatar-state-pill .dot { background: var(--cyan-primary); }
+
+.avatar-stage-listening .avatar-state-pill { color: #10b981; border-color: rgba(16, 185, 129, 0.5); }
+.avatar-stage-listening .avatar-state-pill .dot { background: #10b981; animation: pulseDot 0.8s infinite alternate; }
+
+.avatar-stage-thinking .avatar-state-pill { color: #8b5cf6; border-color: rgba(139, 92, 246, 0.5); }
+.avatar-stage-thinking .avatar-state-pill .dot { background: #8b5cf6; animation: pulseDot 0.5s infinite alternate; }
+
+.avatar-stage-speaking .avatar-state-pill { color: #f59e0b; border-color: rgba(245, 158, 11, 0.5); }
+.avatar-stage-speaking .avatar-state-pill .dot { background: #f59e0b; animation: pulseDot 0.3s infinite alternate; }
+
+@keyframes pulseDot {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+/* Voice & Playback Controls Bar */
+.avatar-playback-bar {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Chat Messages Scrollbox */
+.copilot-chat-history {
+  height: 340px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.copilot-msg {
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  max-width: 90%;
+  word-break: break-word;
+}
+
+.copilot-msg-user {
+  align-self: flex-end;
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  color: var(--text-primary);
+}
+
+.copilot-msg-avatar {
+  align-self: flex-start;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  color: var(--text-primary);
+}
+
+.copilot-msg-system {
+  align-self: center;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+  font-size: 0.75rem;
+  text-align: center;
+  max-width: 95%;
+}
+
+.copilot-msg-author {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+  color: var(--cyan-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.copilot-msg-avatar .copilot-msg-author {
+  color: #a78bfa;
+}
+
+/* Quick Prompt Chips */
+.quick-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.chip-btn {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.725rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chip-btn:hover {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: var(--cyan-primary);
+  color: var(--text-primary);
+}
+
+/* Chat Input Bar */
+.copilot-input-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.copilot-text-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.copilot-text-input:focus {
+  border-color: var(--cyan-primary);
+  box-shadow: 0 0 0 2px var(--cyan-glow);
+}
+
+.mic-toggle-btn {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.mic-toggle-btn.mic-active {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #fca5a5;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+  animation: pulseListen 1s infinite alternate;
+}
+
+/* Right Column: Autonomous Agent + 10 Step Deep Investigation */
+.studio-right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Autonomous Agent Workflow Box */
+.autonomous-agent-box {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: 0 0 25px rgba(6, 182, 212, 0.08);
+  position: relative;
+}
+
+.agent-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* 7-Step Horizontal Timeline */
+.autonomous-timeline-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.auto-step-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 0.5rem 0.4rem;
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  transition: all 0.25s ease;
+}
+
+.auto-step-card.active-step {
+  border-color: var(--cyan-primary);
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--cyan-primary);
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.25);
+}
+
+.auto-step-card.completed-step {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+}
+
+/* Live Terminal Log Stream */
+.agent-live-terminal {
+  background: #050811;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: #94a3b8;
+  height: 120px;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.agent-live-terminal .log-highlight {
+  color: var(--cyan-primary);
+}
+
+/* 10-Step Deep Investigation Accordion / Browser */
+.deep-investigation-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+}
+
+.investigation-nav-tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 1rem;
+}
+
+.tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.tab-btn.active-tab {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+}
+
+/* Reports Section */
+.reports-toggle-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.report-view-pane {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  line-height: 1.6;
+  max-height: 380px;
+  overflow-y: auto;
+}
+

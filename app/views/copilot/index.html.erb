@@ -1,0 +1,866 @@
+<% content_for :title, "Sentriq AI — Autonomous SOC Agent & Live AI Avatar Studio" %>
+
+<div class="copilot-container">
+  <!-- Top Scenario & Active Incident Context Bar -->
+  <div class="copilot-top-bar">
+    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+      <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">
+        🎮 Canlı Demo Senaryoları:
+      </span>
+      <div class="scenario-pill-group">
+        <button type="button" class="scenario-btn <%= 'active-scenario' if @detection&.severity == 'low' %>" id="btnScenarioA" onclick="loadScenario('scenario_a')">
+          <span>🟢 Senaryo A: Düşük Risk / Tatbikat (Yedekleme)</span>
+        </button>
+        <button type="button" class="scenario-btn <%= 'active-scenario' if @detection&.severity == 'critical' %>" id="btnScenarioB" onclick="loadScenario('scenario_b')">
+          <span>🔥 Senaryo B: Kritik PowerShell LOLBin & Fidye Saldırısı</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Event Context Pill -->
+    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+      <span style="font-size: 0.75rem; color: var(--text-muted);">Aktif Olay:</span>
+      <select id="eventSelector" class="input-control" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; max-width: 260px;" onchange="switchEvent(this.value)">
+        <% @detections.each do |det| %>
+          <option value="<%= det.id %>" <%= 'selected' if @detection&.id == det.id %>>
+            [<%= det.severity.upcase %>] <%= det.title.truncate(32) %> (<%= det.hostname %>)
+          </option>
+        <% end %>
+      </select>
+      <span class="badge badge-<%= @detection&.severity || 'high' %>" id="headerSeverityBadge">
+        <%= (@detection&.severity || 'high').upcase %>
+      </span>
+      <% if @ticket %>
+        <span class="badge badge-<%= @ticket.status == 'pending_review' ? 'high' : 'info' %>" id="headerTicketBadge">
+          Bilet: <%= @ticket.ticket_number %> (<%= @ticket.status %>)
+        </span>
+      <% else %>
+        <span class="badge badge-medium" id="headerTicketBadge">Bilet: Yok (Açılabilir)</span>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Studio Main Grid -->
+  <div class="copilot-grid">
+    <!-- Left Column: Live AI Avatar & Voice/Chat Studio -->
+    <div class="avatar-card">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">🎙️ Canlı AI Güvenlik Analisti</span>
+          <span class="badge badge-info" style="font-size: 0.65rem;">SOC Copilot</span>
+        </div>
+        <span id="speechSynthesisIndicator" style="font-size: 0.7rem; color: #10b981;">● Sesli Motor Hazır</span>
+      </div>
+
+      <!-- Avatar Visual Display Stage -->
+      <div class="avatar-visual-stage avatar-stage-idle" id="avatarVisualStage">
+        <div class="avatar-orb-container">
+          <div class="avatar-ring-outer"></div>
+          <div class="avatar-ring-inner"></div>
+          <div class="avatar-core" id="avatarCore">
+            <!-- Stylized Cyber Shield / AI Core SVG -->
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="20,4 36,12 36,24 20,36 4,24 4,12" stroke="#06B6D4" stroke-width="2" fill="rgba(6, 182, 212, 0.2)"/>
+              <circle cx="20" cy="20" r="5" fill="#8B5CF6"/>
+              <line x1="20" y1="10" x2="20" y2="15" stroke="#06B6D4" stroke-width="1.5"/>
+              <line x1="20" y1="25" x2="20" y2="30" stroke="#8B5CF6" stroke-width="1.5"/>
+              <line x1="10" y1="20" x2="15" y2="20" stroke="#06B6D4" stroke-width="1.5"/>
+              <line x1="25" y1="20" x2="30" y2="20" stroke="#8B5CF6" stroke-width="1.5"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Audio Reactive Waveform Equalizer -->
+        <div class="avatar-audio-wave" id="audioWave">
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+        </div>
+
+        <!-- Avatar State Pill -->
+        <div class="avatar-state-pill" id="avatarStateBadge">
+          <div class="dot"></div>
+          <span id="avatarStateText">Beklemede (Idle)</span>
+        </div>
+
+        <!-- Voice Playback Controls -->
+        <div class="avatar-playback-bar">
+          <button type="button" class="btn btn-secondary" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;" onclick="stopAvatarSpeech()">
+            ⏹️ Konuşmayı Durdur
+          </button>
+          <button type="button" class="btn btn-secondary" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;" onclick="repeatLastAvatarSpeech()">
+            🔄 Tekrar Seslendir
+          </button>
+          <button type="button" class="btn btn-secondary" style="font-size: 0.7rem; padding: 0.25rem 0.5rem;" onclick="clearChatMessages()">
+            🧹 Temizle
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Prompt Chips -->
+      <div>
+        <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.35rem; font-weight: 600; text-transform: uppercase;">
+          ⚡ Hızlı Analist Soruları & Komutlar:
+        </div>
+        <div class="quick-chips-grid">
+          <button type="button" class="chip-btn" onclick="sendQuickPrompt('Bu olayda tam olarak ne oldu?')">💡 Olayda ne oldu?</button>
+          <button type="button" class="chip-btn" onclick="sendQuickPrompt('Saldırının olası kök nedeni nedir?')">🎯 Olası kök neden nedir?</button>
+          <button type="button" class="chip-btn" onclick="sendQuickPrompt('Hangi bulgular bu sonuca ulaşmanı sağladı?')">🔍 Kanıtlar ve çıkarımlar</button>
+          <button type="button" class="chip-btn" onclick="sendQuickPrompt('Hangi bilgiler henüz eksik?')">❓ Eksik kanıtlar (Gaps)</button>
+          <button type="button" class="chip-btn" onclick="sendQuickPrompt('Bu saldırı tekrar nasıl önlenebilir?')">🛡️ Nasıl önlenebilir?</button>
+          <button type="button" class="chip-btn" onclick="sendQuickPrompt('Hangi runbook prosedürünü uygulamalıyız?')">📖 İlgili runbook</button>
+          <button type="button" class="chip-btn" onclick="sendQuickPrompt('Bu olay için ticket oluştur.')">🎫 Ticket oluştur</button>
+          <button type="button" class="chip-btn" onclick="sendQuickPrompt('Bu olayı insan incelemesine gönder.')">⚠️ İnsana eskalasyon</button>
+          <button type="button" class="chip-btn" onclick="sendQuickPrompt('Yöneticiye sunulacak raporu hazırla.')">📊 Yönetici raporu</button>
+        </div>
+      </div>
+
+      <!-- Chat History Box -->
+      <div class="copilot-chat-history" id="copilotChatHistory">
+        <!-- Initial Welcome Message from Avatar -->
+        <div class="copilot-msg copilot-msg-avatar">
+          <div class="copilot-msg-author">
+            <span>🛡️ Sentriq SOC Avatar</span>
+          </div>
+          <div>
+            Merhaba! Ben Sentriq AI SOC Copilot'ınızım. <strong><%= @detection&.hostname %></strong> üzerindeki 
+            <strong><%= @detection&.title %></strong> tespitine ait telemetriyi, süreç soyağacını ve kurumsal runbook'ları inceledim.
+            Bana mikrofonunuzla sesli soru sorabilir veya aşağıdaki komutları verebilirsiniz.
+          </div>
+        </div>
+
+        <% @messages.each do |msg| %>
+          <div class="copilot-msg copilot-msg-<%= msg.role %>">
+            <div class="copilot-msg-author">
+              <% if msg.role == 'user' %>
+                <span>👤 Analist</span>
+              <% elsif msg.role == 'avatar' %>
+                <span>🛡️ Sentriq SOC Avatar</span>
+              <% else %>
+                <span>🤖 Sistem Bildirimi</span>
+              <% end %>
+            </div>
+            <div><%= simple_format(msg.content) %></div>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Chat Input Controls -->
+      <form id="copilotChatForm" onsubmit="handleChatSubmit(event)" class="copilot-input-container">
+        <input type="text" id="copilotQueryInput" class="copilot-text-input" placeholder="Avatara soru sorun veya komut verin (örn: Kök neden nedir?)..." autocomplete="off">
+        
+        <button type="button" id="micToggleBtn" class="mic-toggle-btn" onclick="toggleMicrophone()" title="Mikrofon ile konuşun">
+          <span id="micIcon">🎤</span>
+          <span id="micLabel">Konuş</span>
+        </button>
+
+        <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1rem;">
+          Gönder
+        </button>
+      </form>
+      <div id="micStatusText" style="font-size: 0.7rem; color: #10b981; min-height: 14px; text-align: center;"></div>
+    </div>
+
+    <!-- Right Column: Autonomous Agent Timeline + 10-Step Deep Investigation Studio -->
+    <div class="studio-right-panel">
+      <!-- Autonomous Agent Workspace Box -->
+      <div class="autonomous-agent-box">
+        <div class="agent-status-header">
+          <div>
+            <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+              <span>🤖 Sayfa İçi Otonom SOC Ajanı (Zero-Touch Ingestion)</span>
+            </h3>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">
+              Olayı backend API üzerinden çeker, LLM ve RAG ile bağlamsal triyaj yapar, veritabanında bilet açar ve avatara aktarır.
+            </p>
+          </div>
+          <button type="button" class="btn btn-primary" id="btnRunAutonomousTriage" onclick="triggerAutonomousTriage()" style="font-size: 0.8rem; padding: 0.45rem 0.9rem;">
+            ⚡ Otonom Triyajı Başlat
+          </button>
+        </div>
+
+        <!-- 7-Step Horizontal Pipeline Timeline -->
+        <div class="autonomous-timeline-steps" id="autonomousTimelineSteps">
+          <div class="auto-step-card" id="autoStep1">
+            <strong>1. Olay Alındı</strong>
+            <div style="font-size: 0.65rem; color: #94a3b8;">EDR Sensörü</div>
+          </div>
+          <div class="auto-step-card" id="autoStep2">
+            <strong>2. Telemetri</strong>
+            <div style="font-size: 0.65rem; color: #94a3b8;">Süreç Soyağacı</div>
+          </div>
+          <div class="auto-step-card" id="autoStep3">
+            <strong>3. Runbook</strong>
+            <div style="font-size: 0.65rem; color: #94a3b8;">RAG Eşleşmesi</div>
+          </div>
+          <div class="auto-step-card" id="autoStep4">
+            <strong>4. LLM Analizi</strong>
+            <div style="font-size: 0.65rem; color: #94a3b8;">Gerekçeli Triyaj</div>
+          </div>
+          <div class="auto-step-card" id="autoStep5">
+            <strong>5. Karar Onayı</strong>
+            <div style="font-size: 0.65rem; color: #94a3b8;">Şema Kontrolü</div>
+          </div>
+          <div class="auto-step-card" id="autoStep6">
+            <strong>6. Bilet Kaydı</strong>
+            <div style="font-size: 0.65rem; color: #94a3b8;">Deduplication</div>
+          </div>
+          <div class="auto-step-card" id="autoStep7">
+            <strong>7. İnsan Onayı</strong>
+            <div style="font-size: 0.65rem; color: #94a3b8;">Pending Review</div>
+          </div>
+        </div>
+
+        <!-- Live Terminal Stream -->
+        <div class="agent-live-terminal" id="agentLiveTerminal">
+          <div>[00:00:00] [AGENT] Sentriq Autonomous Agent hazır. Olay: <%= @detection&.title %> (<%= @detection&.hostname %>).</div>
+          <% if @ticket %>
+            <div>[00:00:01] [DATABASE] Aktif bilet veritabanında mevcut: <%= @ticket.ticket_number %> (Öncelik: <%= @ticket.priority.upcase %>, Durum: <%= @ticket.status %>).</div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- 10-Step Deep Investigation Studio -->
+      <div class="deep-investigation-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🔬 Derinlemesine Olay Araştırması & Kök Neden Analizi (10 Adım)</span>
+          </h3>
+          <span class="badge badge-info" style="font-size: 0.7rem;">Süreç & MITRE Korelasyonu</span>
+        </div>
+
+        <!-- 10 Navigation Tabs -->
+        <div class="investigation-nav-tabs" id="investigationTabs">
+          <button type="button" class="tab-btn active-tab" onclick="switchInvestigationTab('tab_telemetry')">1. Telemetri</button>
+          <button type="button" class="tab-btn" onclick="switchInvestigationTab('tab_timeline')">2. Zaman Çizelgesi</button>
+          <button type="button" class="tab-btn" onclick="switchInvestigationTab('tab_processtree')">3. Süreç Soyağacı</button>
+          <button type="button" class="tab-btn" onclick="switchInvestigationTab('tab_mitre')">4. MITRE Senaryoları</button>
+          <button type="button" class="tab-btn" onclick="switchInvestigationTab('tab_rootcause')">5. Kök Neden Hipotezleri</button>
+          <button type="button" class="tab-btn" onclick="switchInvestigationTab('tab_evidence')">6. Kanıtlar & Boşluklar</button>
+          <button type="button" class="tab-btn" onclick="switchInvestigationTab('tab_runbooks')">7. Runbook Eşleşmesi</button>
+          <button type="button" class="tab-btn" onclick="switchInvestigationTab('tab_prevention')">8. Önleyici Tedbirler</button>
+          <button type="button" class="tab-btn" onclick="switchInvestigationTab('tab_riskhitl')">9. Risk & İnsan Onayı</button>
+          <button type="button" class="tab-btn" onclick="switchInvestigationTab('tab_reports')">10. İki Rapor Görünümü</button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div id="investigationTabContent" style="min-height: 240px;">
+          <!-- Tab 1: Telemetry -->
+          <div id="pane_tab_telemetry" class="tab-pane">
+            <div class="telemetry-strip" style="margin-bottom: 0.75rem;">
+              <div class="telemetry-item">
+                <span class="telemetry-label">Hedef Ana Makine</span>
+                <span class="telemetry-value"><%= @deep_analysis[:steps][:step_1_telemetry][:hostname] %></span>
+              </div>
+              <div class="telemetry-item">
+                <span class="telemetry-label">IP Adresi</span>
+                <span class="telemetry-value"><%= @deep_analysis[:steps][:step_1_telemetry][:ip_address] %></span>
+              </div>
+              <div class="telemetry-item">
+                <span class="telemetry-label">Kullanıcı Hesabı</span>
+                <span class="telemetry-value"><%= @deep_analysis[:steps][:step_1_telemetry][:username] %></span>
+              </div>
+              <div class="telemetry-item">
+                <span class="telemetry-label">Çalışan Süreç</span>
+                <span class="telemetry-value"><%= @deep_analysis[:steps][:step_1_telemetry][:process_name] %> (PID: <%= @deep_analysis[:steps][:step_1_telemetry][:process_id] %>)</span>
+              </div>
+              <div class="telemetry-item">
+                <span class="telemetry-label">Ebeveyn Süreç</span>
+                <span class="telemetry-value"><%= @deep_analysis[:steps][:step_1_telemetry][:parent_process_name] %> (PID: <%= @deep_analysis[:steps][:step_1_telemetry][:parent_process_id] %>)</span>
+              </div>
+            </div>
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 0.75rem; font-family: var(--font-mono); font-size: 0.75rem; color: #cbd5e1; word-break: break-all;">
+              <span style="color: var(--cyan-primary);">CMDLINE:</span> <%= @deep_analysis[:steps][:step_1_telemetry][:command_line] %><br>
+              <span style="color: #8b5cf6;">SHA256:</span> <%= @deep_analysis[:steps][:step_1_telemetry][:file_hash] %>
+            </div>
+          </div>
+
+          <!-- Tab 2: Timeline -->
+          <div id="pane_tab_timeline" class="tab-pane" style="display: none;">
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <% @deep_analysis[:steps][:step_2_timeline].each do |item| %>
+                <div style="display: flex; gap: 0.75rem; background: rgba(0,0,0,0.25); border-left: 3px solid var(--cyan-primary); padding: 0.5rem 0.75rem; border-radius: 0 4px 4px 0;">
+                  <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--cyan-primary); font-weight: 600; min-width: 65px;"><%= item[:timestamp] %></span>
+                  <div>
+                    <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary);"><%= item[:event_type] %> <span style="font-size: 0.7rem; color: var(--text-muted);">(<%= item[:source] %>)</span></div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.15rem;"><%= item[:description] %></div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <!-- Tab 3: Process Tree -->
+          <div id="pane_tab_processtree" class="tab-pane" style="display: none;">
+            <div class="process-tree">
+              <div class="tree-node parent">
+                <span>📁 <%= @deep_analysis[:steps][:step_3_process_tree][:root_ancestor] %></span>
+              </div>
+              <div class="tree-node parent" style="margin-left: 1.5rem;">
+                <span>↳ 📄 <%= @deep_analysis[:steps][:step_3_process_tree][:parent_node] %></span>
+              </div>
+              <div class="tree-node target">
+                <span>⚠️ 🚨 <%= @deep_analysis[:steps][:step_3_process_tree][:target_node] %></span>
+              </div>
+              <div class="tree-node child">
+                <span>🌐 <%= @deep_analysis[:steps][:step_3_process_tree][:network_connection] %></span>
+              </div>
+            </div>
+            <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #fca5a5; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); padding: 0.5rem; border-radius: 4px;">
+              ⚡ <strong>Anomali Tespiti:</strong> <%= @deep_analysis[:steps][:step_3_process_tree][:anomaly_flag] %>
+            </div>
+          </div>
+
+          <!-- Tab 4: MITRE Scenarios -->
+          <div id="pane_tab_mitre" class="tab-pane" style="display: none;">
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <% @deep_analysis[:steps][:step_4_scenarios].each do |sc| %>
+                <div class="hypothesis-box">
+                  <div class="hypothesis-header">
+                    <span class="hypothesis-name"><%= sc[:technique] %> (<%= sc[:phase] %>)</span>
+                    <span class="badge badge-<%= sc[:likelihood] == 'Critical' ? 'critical' : (sc[:likelihood] == 'High' ? 'high' : 'medium') %>" style="font-size: 0.65rem;">
+                      Olasılık: <%= sc[:likelihood] %>
+                    </span>
+                  </div>
+                  <div class="hypothesis-rationale"><%= sc[:description] %></div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <!-- Tab 5: Root Cause Hypotheses -->
+          <div id="pane_tab_rootcause" class="tab-pane" style="display: none;">
+            <% rc = @deep_analysis[:steps][:step_5_root_cause] %>
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 0.75rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <span style="font-weight: 700; color: #6ee7b7; font-size: 0.85rem;">🎯 BİRİNCİL KÖK NEDEN HİPOTEZİ</span>
+                <span class="badge badge-success" style="font-size: 0.7rem;">Güven: %<%= rc[:primary][:confidence] %></span>
+              </div>
+              <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.3rem;">
+                <%= rc[:primary][:hypothesis] %>
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                <%= rc[:primary][:rationale] %>
+              </div>
+            </div>
+
+            <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem; text-transform: uppercase;">
+              Alternatif Senaryolar & Yanlış Pozitif Değerlendirmesi:
+            </div>
+            <% rc[:alternatives].each do |alt| %>
+              <div class="hypothesis-box" style="border-left-color: #8b5cf6;">
+                <div class="hypothesis-header">
+                  <span class="hypothesis-name"><%= alt[:hypothesis] %></span>
+                  <span class="badge badge-medium" style="font-size: 0.65rem;">Olasılık: <%= alt[:likelihood] %></span>
+                </div>
+                <div class="hypothesis-rationale"><%= alt[:rationale] %></div>
+              </div>
+            <% end %>
+          </div>
+
+          <!-- Tab 6: Evidence & Gaps -->
+          <div id="pane_tab_evidence" class="tab-pane" style="display: none;">
+            <% eg = @deep_analysis[:steps][:step_6_evidence_and_gaps] %>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div>
+                <h4 style="font-size: 0.8rem; font-weight: 700; color: #10b981; margin: 0 0 0.4rem 0;">✅ Kanıtlanmış Bulgular:</h4>
+                <ul class="bullet-list">
+                  <% eg[:proven_findings].each do |f| %>
+                    <li class="bullet-item"><%= f %></li>
+                  <% end %>
+                </ul>
+              </div>
+              <div>
+                <h4 style="font-size: 0.8rem; font-weight: 700; color: #f59e0b; margin: 0 0 0.4rem 0;">❓ Henüz Eksik Bilgiler (Gaps):</h4>
+                <ul class="bullet-list">
+                  <% eg[:unknown_gaps].each do |g| %>
+                    <li class="bullet-item" style="color: #cbd5e1;"><%= g %></li>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 7: Runbooks -->
+          <div id="pane_tab_runbooks" class="tab-pane" style="display: none;">
+            <% @deep_analysis[:steps][:step_7_runbooks].each do |rb| %>
+              <div class="source-ref-card">
+                <div class="source-ref-title">
+                  <span>📖 <%= rb[:title] %></span>
+                  <span class="badge badge-info" style="font-size: 0.65rem;"><%= rb[:category].upcase %></span>
+                </div>
+                <div class="source-ref-quote">"<%= rb[:quote] %>"</div>
+                <div class="source-ref-relevance"><%= rb[:relevance] %></div>
+              </div>
+            <% end %>
+          </div>
+
+          <!-- Tab 8: Prevention -->
+          <div id="pane_tab_prevention" class="tab-pane" style="display: none;">
+            <% prev = @deep_analysis[:steps][:step_8_prevention] %>
+            <div style="margin-bottom: 0.75rem;">
+              <h4 style="font-size: 0.8rem; font-weight: 700; color: #ef4444; margin: 0 0 0.35rem 0;">🚨 Acil Müdahale Adımları (Immediate Containment):</h4>
+              <ul class="bullet-list">
+                <% prev[:immediate_containment].each do |c| %>
+                  <li class="bullet-item" style="color: #fca5a5;"><%= c %></li>
+                <% end %>
+              </ul>
+            </div>
+            <div>
+              <h4 style="font-size: 0.8rem; font-weight: 700; color: #06b6d4; margin: 0 0 0.35rem 0;">🔒 Kalıcı Güçlendirme & Önleme (Hardening):</h4>
+              <ul class="bullet-list">
+                <% prev[:preventive_hardening].each do |h| %>
+                  <li class="bullet-item"><%= h %></li>
+                <% end %>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Tab 9: Risk & HITL -->
+          <div id="pane_tab_riskhitl" class="tab-pane" style="display: none;">
+            <% rh = @deep_analysis[:steps][:step_9_risk_and_hitl] %>
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 0.75rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">Değerlendirilen Risk Seviyesi:</span>
+                <span class="badge badge-<%= rh[:overall_risk].downcase == 'critical' ? 'critical' : 'high' %>"><%= rh[:overall_risk] %></span>
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                İnsan Onayı Zorunluluğu: <strong style="color: #fca5a5;"><%= rh[:requires_human_approval] ? 'GEREKLİ (Güvenlik Kilidi Devrede)' : 'Gerekmez' %></strong><br>
+                Durum: <span style="font-family: var(--font-mono); color: var(--cyan-primary);"><%= rh[:escalation_status] %></span>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div>
+                <h5 style="font-size: 0.75rem; color: #10b981; margin: 0 0 0.35rem 0;">İzin Verilen Otonom İşlemler:</h5>
+                <ul class="bullet-list">
+                  <% rh[:automated_actions_permitted].each do |p| %>
+                    <li class="bullet-item" style="font-size: 0.75rem;"><%= p %></li>
+                  <% end %>
+                </ul>
+              </div>
+              <div>
+                <h5 style="font-size: 0.75rem; color: #ef4444; margin: 0 0 0.35rem 0;">Açık İnsan Onayı Gerektirenler:</h5>
+                <ul class="bullet-list">
+                  <% rh[:human_approval_mandatory].each do |m| %>
+                    <li class="bullet-item" style="font-size: 0.75rem; color: #fca5a5;"><%= m %></li>
+                  <% end %>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 10: Dual Reports View -->
+          <div id="pane_tab_reports" class="tab-pane" style="display: none;">
+            <div class="reports-toggle-container">
+              <button type="button" class="btn btn-secondary active-report-btn" id="btnShowExecReport" onclick="showReportView('exec')" style="font-size: 0.75rem; padding: 0.35rem 0.7rem;">
+                📄 A. Yönetici Özeti
+              </button>
+              <button type="button" class="btn btn-secondary" id="btnShowTechReport" onclick="showReportView('tech')" style="font-size: 0.75rem; padding: 0.35rem 0.7rem;">
+                🔬 B. Teknik Rapor
+              </button>
+              <button type="button" class="btn btn-primary" onclick="speakExecutiveReport()" style="font-size: 0.75rem; padding: 0.35rem 0.7rem; margin-left: auto;">
+                🔊 Avatar ile Seslendir
+              </button>
+            </div>
+
+            <div class="report-view-pane" id="execReportPane"><%= @deep_analysis[:executive_summary] %></div>
+            <div class="report-view-pane" id="techReportPane" style="display: none;"><%= @deep_analysis[:technical_report] %></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Interactive Client-side Script for Live Avatar, Speech Synthesis, Web SpeechRecognition, and Autonomous Triage -->
+<script>
+  let currentDetectionId = <%= @detection&.id || 'null' %>;
+  let currentTicketId = <%= @ticket&.id || 'null' %>;
+  let lastSpokenText = "";
+  let recognitionInstance = null;
+  let isListening = false;
+
+  // Initialize Speech Recognition if supported in browser
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition) {
+    recognitionInstance = new SpeechRecognition();
+    recognitionInstance.continuous = false;
+    recognitionInstance.interimResults = false;
+    recognitionInstance.lang = 'tr-TR';
+
+    recognitionInstance.onstart = function() {
+      isListening = true;
+      setAvatarState('listening', 'Dinleniyor (Konuşun)...');
+      document.getElementById('micToggleBtn').classList.add('mic-active');
+      document.getElementById('micLabel').textContent = 'Dinliyor...';
+      document.getElementById('micStatusText').textContent = '● Mikrofon açık: Sorunuzu konuşun...';
+    };
+
+    recognitionInstance.onresult = function(event) {
+      const speechResult = event.results[0][0].transcript;
+      document.getElementById('copilotQueryInput').value = speechResult;
+      document.getElementById('micStatusText').textContent = 'Duyuldu: "' + speechResult + '"';
+      stopMicrophone();
+      // Auto-submit recognized speech
+      handleChatQuery(speechResult);
+    };
+
+    recognitionInstance.onerror = function(event) {
+      console.warn("Speech recognition error:", event.error);
+      stopMicrophone();
+      document.getElementById('micStatusText').textContent = 'Mikrofon hatası: ' + event.error;
+      setAvatarState('idle', 'Beklemede (Idle)');
+    };
+
+    recognitionInstance.onend = function() {
+      stopMicrophone();
+      if (document.getElementById('avatarStateText').textContent.includes('Dinleniyor')) {
+        setAvatarState('idle', 'Beklemede (Idle)');
+      }
+    };
+  } else {
+    console.info("Web Speech API Recognition not supported in this browser; text chat available.");
+    document.getElementById('micStatusText').textContent = 'Web SpeechRecognition bu tarayıcıda bulunamadı; yazılı sohbet aktif.';
+  }
+
+  function toggleMicrophone() {
+    if (!recognitionInstance) {
+      alert("Tarayıcınız Web SpeechRecognition ses girişini doğrudan desteklemiyor. Lütfen sorunuzu yazarak gönderin.");
+      return;
+    }
+    if (isListening) {
+      stopMicrophone();
+    } else {
+      try {
+        window.speechSynthesis.cancel();
+        recognitionInstance.start();
+      } catch (e) {
+        console.warn("Could not start speech recognition:", e);
+      }
+    }
+  }
+
+  function stopMicrophone() {
+    isListening = false;
+    if (recognitionInstance) {
+      try { recognitionInstance.stop(); } catch (e) {}
+    }
+    document.getElementById('micToggleBtn').classList.remove('mic-active');
+    document.getElementById('micLabel').textContent = 'Konuş';
+  }
+
+  // Avatar Visual State Setter
+  function setAvatarState(state, text) {
+    const stage = document.getElementById('avatarVisualStage');
+    const badgeText = document.getElementById('avatarStateText');
+
+    stage.className = 'avatar-visual-stage avatar-stage-' + state;
+    badgeText.textContent = text;
+  }
+
+  // Voice Output (SpeechSynthesis)
+  function speakAvatarResponse(text) {
+    if (!('speechSynthesis' in window)) return;
+
+    window.speechSynthesis.cancel();
+    lastSpokenText = text;
+
+    const cleanText = text.replace(/[*#`_\[\]()]/g, '').trim();
+    if (!cleanText) return;
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'tr-TR';
+    utterance.rate = 1.05;
+    utterance.pitch = 1.0;
+
+    // Pick a natural voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const trVoice = voices.find(v => v.lang.startsWith('tr')) || voices.find(v => v.name.includes('Turkish'));
+    if (trVoice) utterance.voice = trVoice;
+
+    utterance.onstart = function() {
+      setAvatarState('speaking', 'Konuşuyor (Speaking)...');
+    };
+
+    utterance.onend = function() {
+      setAvatarState('idle', 'Beklemede (Idle)');
+    };
+
+    utterance.onerror = function() {
+      setAvatarState('idle', 'Beklemede (Idle)');
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function stopAvatarSpeech() {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setAvatarState('idle', 'Beklemede (Idle)');
+  }
+
+  function repeatLastAvatarSpeech() {
+    if (lastSpokenText) {
+      speakAvatarResponse(lastSpokenText);
+    }
+  }
+
+  function clearChatMessages() {
+    const history = document.getElementById('copilotChatHistory');
+    history.innerHTML = '<div class="copilot-msg copilot-msg-system">🧹 Sohbet geçmişi temizlendi.</div>';
+    stopAvatarSpeech();
+  }
+
+  // Chat Submission Handler
+  function handleChatSubmit(e) {
+    e.preventDefault();
+    const input = document.getElementById('copilotQueryInput');
+    const query = input.value.trim();
+    if (!query) return;
+
+    input.value = '';
+    handleChatQuery(query);
+  }
+
+  function sendQuickPrompt(promptText) {
+    handleChatQuery(promptText);
+  }
+
+  function handleChatQuery(query) {
+    appendUserMessage(query);
+    setAvatarState('thinking', 'Analiz Ediyor (Thinking)...');
+    stopAvatarSpeech();
+
+    fetch('/copilot/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        query: query,
+        detection_id: currentDetectionId,
+        ticket_id: currentTicketId
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        appendAvatarMessage(data.response);
+        if (data.ticket) {
+          currentTicketId = data.ticket.id;
+          document.getElementById('headerTicketBadge').textContent = 'Bilet: ' + data.ticket.ticket_number + ' (' + data.ticket.status + ')';
+        }
+        // Speak speech_text
+        if (data.speech_text) {
+          speakAvatarResponse(data.speech_text);
+        } else {
+          setAvatarState('idle', 'Beklemede (Idle)');
+        }
+      } else {
+        appendSystemMessage("Hata: " + (data.error || "Yanıt alınamadı."));
+        setAvatarState('idle', 'Beklemede (Idle)');
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      appendSystemMessage("Bağlantı hatası: " + err.message);
+      setAvatarState('idle', 'Beklemede (Idle)');
+    });
+  }
+
+  function appendUserMessage(text) {
+    const history = document.getElementById('copilotChatHistory');
+    const msg = document.createElement('div');
+    msg.className = 'copilot-msg copilot-msg-user';
+    msg.innerHTML = '<div class="copilot-msg-author"><span>👤 Analist</span></div><div>' + escapeHtml(text) + '</div>';
+    history.appendChild(msg);
+    history.scrollTop = history.scrollHeight;
+  }
+
+  function appendAvatarMessage(markdownText) {
+    const history = document.getElementById('copilotChatHistory');
+    const msg = document.createElement('div');
+    msg.className = 'copilot-msg copilot-msg-avatar';
+    msg.innerHTML = '<div class="copilot-msg-author"><span>🛡️ Sentriq SOC Avatar</span></div><div>' + formatMarkdown(markdownText) + '</div>';
+    history.appendChild(msg);
+    history.scrollTop = history.scrollHeight;
+  }
+
+  function appendSystemMessage(text) {
+    const history = document.getElementById('copilotChatHistory');
+    const msg = document.createElement('div');
+    msg.className = 'copilot-msg copilot-msg-system';
+    msg.textContent = text;
+    history.appendChild(msg);
+    history.scrollTop = history.scrollHeight;
+  }
+
+  // Autonomous Agent Workflow Execution
+  function triggerAutonomousTriage() {
+    const btn = document.getElementById('btnRunAutonomousTriage');
+    btn.disabled = true;
+    btn.textContent = '⏳ Triyaj Yürütülüyor...';
+
+    setAvatarState('thinking', 'Otonom Triyaj Devrede...');
+    resetTimelineVisuals();
+
+    // Visual step sequence simulation while API executes
+    advanceStep(1);
+    setTimeout(() => advanceStep(2), 500);
+    setTimeout(() => advanceStep(3), 1100);
+
+    fetch('/copilot/autonomous_triage', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        detection_id: currentDetectionId
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = '⚡ Otonom Triyajı Başlat';
+
+      if (data.success) {
+        advanceStep(4);
+        setTimeout(() => advanceStep(5), 400);
+        setTimeout(() => advanceStep(6), 700);
+        setTimeout(() => advanceStep(7), 1000);
+
+        // Append logs to terminal
+        const term = document.getElementById('agentLiveTerminal');
+        if (data.logs && data.logs.length) {
+          term.innerHTML = data.logs.map(l => '<div>' + escapeHtml(l) + '</div>').join('');
+          term.scrollTop = term.scrollHeight;
+        }
+
+        // Update ticket badge
+        if (data.ticket) {
+          currentTicketId = data.ticket.id;
+          document.getElementById('headerTicketBadge').textContent = 'Bilet: ' + data.ticket.ticket_number + ' (' + data.ticket.status + ')';
+          appendSystemMessage("🤖 Otonom Ajan Bilet Açtı: " + data.ticket.ticket_number + " (Durum: " + data.ticket.status + ")");
+        }
+
+        // Avatar announces success
+        if (data.speech_text) {
+          speakAvatarResponse(data.speech_text);
+        } else {
+          setAvatarState('idle', 'Beklemede (Idle)');
+        }
+      } else {
+        alert("Otonom triyaj hatası: " + data.error);
+        setAvatarState('idle', 'Beklemede (Idle)');
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.textContent = '⚡ Otonom Triyajı Başlat';
+      alert("Hata: " + err.message);
+      setAvatarState('idle', 'Beklemede (Idle)');
+    });
+  }
+
+  function advanceStep(num) {
+    for (let i = 1; i <= 7; i++) {
+      const el = document.getElementById('autoStep' + i);
+      if (!el) continue;
+      if (i < num) {
+        el.className = 'auto-step-card completed-step';
+      } else if (i === num) {
+        el.className = 'auto-step-card active-step';
+      }
+    }
+  }
+
+  function resetTimelineVisuals() {
+    for (let i = 1; i <= 7; i++) {
+      const el = document.getElementById('autoStep' + i);
+      if (el) el.className = 'auto-step-card';
+    }
+  }
+
+  // 10-Step Deep Investigation Tabs
+  function switchInvestigationTab(tabId) {
+    const tabs = document.querySelectorAll('.investigation-nav-tabs .tab-btn');
+    tabs.forEach(t => t.classList.remove('active-tab'));
+
+    const panes = document.querySelectorAll('#investigationTabContent .tab-pane');
+    panes.forEach(p => p.style.display = 'none');
+
+    const activePane = document.getElementById('pane_' + tabId);
+    if (activePane) activePane.style.display = 'block';
+
+    const clickedBtn = Array.from(tabs).find(t => t.getAttribute('onclick').includes(tabId));
+    if (clickedBtn) clickedBtn.classList.add('active-tab');
+  }
+
+  // Dual Reports Switcher
+  function showReportView(type) {
+    const execPane = document.getElementById('execReportPane');
+    const techPane = document.getElementById('techReportPane');
+    const btnExec = document.getElementById('btnShowExecReport');
+    const btnTech = document.getElementById('btnShowTechReport');
+
+    if (type === 'exec') {
+      execPane.style.display = 'block';
+      techPane.style.display = 'none';
+      btnExec.classList.add('active-report-btn');
+      btnTech.classList.remove('active-report-btn');
+    } else {
+      execPane.style.display = 'none';
+      techPane.style.display = 'block';
+      btnTech.classList.add('active-report-btn');
+      btnExec.classList.remove('active-report-btn');
+    }
+  }
+
+  function speakExecutiveReport() {
+    const text = document.getElementById('execReportPane').textContent;
+    speakAvatarResponse(text);
+  }
+
+  // Scenario Loader
+  function loadScenario(scenario) {
+    fetch('/copilot/load_scenario', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scenario: scenario })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        window.location.href = '/copilot?detection_id=' + data.detection_id;
+      }
+    });
+  }
+
+  function switchEvent(detId) {
+    if (detId) {
+      window.location.href = '/copilot?detection_id=' + detId;
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function(m) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
+    });
+  }
+
+  function formatMarkdown(text) {
+    if (!text) return '';
+    let html = escapeHtml(text);
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    html = html.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.08);padding:2px 4px;border-radius:3px;color:#38bdf8;">$1</code>');
+    html = html.replace(/\n\n/g, '<br><br>');
+    html = html.replace(/\n/g, '<br>');
+    return html;
+  }
+</script>
