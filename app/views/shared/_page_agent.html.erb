@@ -55,6 +55,12 @@
   <div id="pa-toast-actions" style="margin-top:0.55rem; display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
 </div>
 
+<!-- ── Modal Karartma Katmanı (Backdrop) ──────────────────────────────── -->
+<div id="pa-modal-backdrop" onclick="paCloseTicketModal()" style="
+  position: fixed; inset: 0; background: rgba(5, 10, 25, 0.75); backdrop-filter: blur(5px);
+  z-index: 99998; display: none; opacity: 0; transition: opacity 0.25s ease;
+"></div>
+
 <!-- ── Canlı Otomatik Açılan Bilet Modalı (Live Ticket Popup) ──────────── -->
 <div id="pa-ticket-modal" style="
   position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95);
@@ -368,11 +374,13 @@
   const PA_POLL_INTERVAL_MS = 60000;
   const PA_BOOT_DELAY_MS   = 2000;
 
-  // ── Bootstrap: auto-start & restore API key from LocalStorage ───────────
+  // ── Bootstrap: restore API key & standby (Bilet tetiklenmeden modal AÇILMAZ) ──
   document.addEventListener("DOMContentLoaded", function() {
     paRestoreApiKey();
-    paAppendPanelLog("sys", "Sentriq SOC Analiz Motoru Hazır — Güvenlik telemetrisi izleniyor...");
-    setTimeout(paAutoRun, PA_BOOT_DELAY_MS);
+    paAppendPanelLog("sys", "Sentriq SOC Ajanı Hazır (Standby) — Bilet veya triaj tetiklendiğinde devreye girer.");
+    paSetOrbState("done");
+    // ÖNEMLİ: Durduk yere sayfa açılışında otomatik modal patlatması kaldırıldı.
+    // Modal yalnızca kullanıcı veya sistem tarafından bir bilet/triaj tetiklendiğinde açılır.
   });
 
   // ── Restore saved API Key ────────────────────────────────────────────────
@@ -401,18 +409,9 @@
     }
   }
 
-  // ── Auto-run / Execution entry point ─────────────────────────────────────
+  // ── Triggered Run / Execution entry point ────────────────────────────────
   function paAutoRun(customInstruction) {
-    const isAutoPoll = !customInstruction;
     const ctx = paGetContext();
-
-    // Prevent duplicate ticket spam for the same detection during automatic background polling
-    if (isAutoPoll && ctx.detection_id && ctx.detection_id === paLastHandledDetectionId && (Date.now() - paLastProcessedAt < 120000)) {
-      paAppendPanelLog("sys", "Tespit DET-" + ctx.detection_id + " zaten işleme alındı (" + (paLastTicketData ? paLastTicketData.ticket.status : 'aktif') + "). Mükerrer bilet açılması engellendi.");
-      clearTimeout(paPollingTimer);
-      paPollingTimer = setTimeout(paAutoRun, PA_POLL_INTERVAL_MS);
-      return;
-    }
 
     const instruction = customInstruction ||
       "Bu sayfadaki aktif güvenlik tespitini incele, uygun runbook prosedürünü eşle, bilet aç ve otonom müdahale raporunu oluştur";
@@ -421,7 +420,7 @@
     paSetButtonLoading(true);
     paRunCount++;
     document.getElementById("pa-run-count").innerText = paRunCount + " otonom inceleme";
-    paAppendPanelLog("observe", "Sayfa telemetrisi ve olay bağlamı inceleniyor — Sayfa: " + window.location.pathname);
+    paAppendPanelLog("observe", "Bilet/triaj tetiklendi — Sayfa: " + window.location.pathname);
 
     fetch("/page_agent/execute", {
       method: "POST",
@@ -447,6 +446,10 @@
     });
   }
   window.paAutoRun = paAutoRun;
+  window.paTriggerTriage = function(instruction) {
+    paAutoRun(instruction || "Bu sayfadaki tespiti incele, bilet aç ve karantinaya al");
+  };
+  window.paTriggerPageAgent = window.paTriggerTriage;
 
   // ── Manual Run & Enter Form Handler ──────────────────────────────────────
   function paManualSubmit(e) {
@@ -552,9 +555,9 @@
         );
       }
 
-      // schedule next polling cycle
+      // Sadece tetiklenince çalışır; durduk yere periyodik polling yapmaz
       clearTimeout(paPollingTimer);
-      paPollingTimer = setTimeout(paAutoRun, PA_POLL_INTERVAL_MS);
+      paPollingTimer = null;
 
     } else if (!data.success && data.needs_human) {
       paSetOrbState("waiting-human");
@@ -571,7 +574,7 @@
     paAppendPanelLog("error", "Hata: " + msg);
     paShowToast("⚠️ Ajan Uyarısı", msg, []);
     clearTimeout(paPollingTimer);
-    paPollingTimer = setTimeout(paAutoRun, PA_POLL_INTERVAL_MS);
+    paPollingTimer = null;
   }
 
   // ── High-Precision Viewport Coordinate Calculator ───────────────────────
@@ -822,6 +825,11 @@
     }
 
     document.getElementById("pa-modal-open-link").href = fullData.ticket.url;
+    const backdrop = document.getElementById("pa-modal-backdrop");
+    if (backdrop) {
+      backdrop.style.display = "block";
+      setTimeout(function() { backdrop.style.opacity = "1"; }, 10);
+    }
     modal.style.display = "flex";
     setTimeout(function() {
       modal.style.transform = "translate(-50%, -50%) scale(1)";
@@ -838,10 +846,22 @@
 
   function paCloseTicketModal() {
     const modal = document.getElementById("pa-ticket-modal");
+    const backdrop = document.getElementById("pa-modal-backdrop");
     modal.style.transform = "translate(-50%, -50%) scale(0.95)";
-    setTimeout(function() { modal.style.display = "none"; }, 200);
+    if (backdrop) backdrop.style.opacity = "0";
+    setTimeout(function() {
+      modal.style.display = "none";
+      if (backdrop) backdrop.style.display = "none";
+    }, 200);
   }
   window.paCloseTicketModal = paCloseTicketModal;
+
+  // ESC key to dismiss modal
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" || e.keyCode === 27) {
+      paCloseTicketModal();
+    }
+  });
 
   // ── Inject newly opened ticket live into /tickets table ─────────────────
   function paInjectTicketIntoCurrentTable(ticket) {

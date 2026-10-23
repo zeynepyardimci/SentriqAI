@@ -318,8 +318,14 @@ class PageAgentService
   def resolve_detection
     if @page_context[:detection_id].present?
       Detection.find_by(id: @page_context[:detection_id])
+    elsif @page_context[:ticket_id].present?
+      t = Ticket.find_by(id: @page_context[:ticket_id])
+      t&.detection
     elsif @page_url.match(%r{/detections/(\d+)})
       Detection.find_by(id: ::Regexp.last_match(1))
+    elsif @page_url.match(%r{/tickets/(\d+)})
+      t = Ticket.find_by(id: ::Regexp.last_match(1))
+      t&.detection
     else
       # Prioritize active detections without tickets
       active_ticket_det_ids = Ticket.where.not(status: %w[closed]).where.not(detection_id: nil).pluck(:detection_id)
@@ -328,6 +334,11 @@ class PageAgentService
   end
 
   def find_or_create_ticket(detection, _ragie_results)
+    if @page_context[:ticket_id].present?
+      existing_by_param = Ticket.find_by(id: @page_context[:ticket_id])
+      return existing_by_param if existing_by_param
+    end
+
     if detection
       # Idempotency: reuse existing ticket (open, investigating, or pending_review)
       existing = detection.tickets.where(status: %w[open investigating pending_review]).recent_first.first

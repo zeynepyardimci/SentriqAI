@@ -205,6 +205,9 @@
         <%= button_to auto_ticket_detection_path(@detection), method: :post, class: "btn btn-agent", style: "width: 100%; justify-content: center; gap: 0.5rem;" do %>
           🤖 Otonom Agent Ticket Açsın (Zero-Touch Triage)
         <% end %>
+        <button type="button" onclick="if (window.paTriggerPageAgent) { window.paTriggerPageAgent('Bu tespiti incele, uygun runbook prosedürünü eşle, bilet aç ve otonom müdahale raporunu oluştur'); } else { alert('Ajan yükleniyor...'); }" class="btn" style="width: 100%; justify-content: center; gap: 0.5rem; margin-top: 0.5rem; background: rgba(6, 182, 212, 0.15); border: 1px solid #06b6d4; color: #38bdf8; font-weight: 600; font-size: 0.85rem; padding: 0.55rem; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center;">
+          ⚡ Page Agent ile Canlı Sanal İmleç Triajı Başlat
+        </button>
       <% end %>
     </div>
 
