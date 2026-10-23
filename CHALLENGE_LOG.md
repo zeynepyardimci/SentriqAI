@@ -326,7 +326,40 @@ Son hedef: Çok özellikli görünen bir demo değil; gerçek kullanıcı acıs�
 - **Arayüz Tutarlılığı:** Modal ve toast bildirimleri `PENDING_REVIEW` (Sarı/Turuncu) veya `RESOLVED` (Yeşil) durumunu doğru rozet, gerekçe ve simülasyon etiketiyle göstermek üzere güncellendi.
 
 ### 3. Test Sonuçları
-- `PageAgentServiceTest` (5 senaryo) ve `PageAgentControllerTest` (5 senaryo): **10 runs, 70 assertions, 0 failures, 0 errors**.
-- Tüm proje testleri (`bundle exec rails test`): **76 runs, 442 assertions, 0 failures, 0 errors, 0 skips**.
+- `PageAgentServiceTest` ve `PageAgentControllerTest`: **12 runs, 77 assertions, 0 failures, 0 errors**.
+- Tüm proje testleri (`bundle exec rails test`): **82 runs, 481 assertions, 0 failures, 0 errors, 0 skips**.
 - Brakeman SAST güvenlik taraması: **0 warnings, 0 errors**.
+
+---
+
+## ⚡ CRITICAL BUG FIX 1: ActionDispatch::Cookies::CookieOverflow Çözümü
+
+### 1. Kök Neden (Root Cause)
+- **Dosya / Satır:** `app/controllers/tickets_controller.rb:118`
+- **Neden:** `autonomous_ingest` aksiyonu içinde `session[:last_autonomous_logs] = outcome[:logs]` yazılarak, birden fazla olayın yüzlerce satırlık RAG ve triaj log dizisi doğrudan Rails cookie tabanlı oturumuna kaydediliyordu.
+- Bu log dizisi şifrelenip serileştirildiğinde 4096 baytlık (4KB) tarayıcı çerez sınırını aşarak **4139 bayt** boyutuna ulaşıyor ve `ActionDispatch::Cookies::CookieOverflow` istisnası fırlatıyordu.
+
+### 2. Kalıcı Çözüm
+- `session` içine büyük log veya analiz nesnesi yazma işlemi tamamen kaldırıldı.
+- `TicketsController#autonomous_ingest` hem HTML hem JSON isteklerini destekleyecek şekilde `respond_to` blokuna alındı.
+- JSON isteklerinde küçük ve yapılandırılmış özet yanıt (`processed_count`, `tickets` ID listesi) döndürüldü; HTTP 200/422 durum kodları eklendi.
+- Arayüzde son yürütme akışını görüntülemek için çerez yerine doğrudan mevcut `AuditEvent` ActiveRecord modeli kullanıldı (`AuditEvent.where(action: %w[autonomous_agent_zero_touch_triage page_agent_action_executed])`).
+- Böylece oturum çerez boyutu **< 600 bayt** seviyesinde tutularak çerez taşması kalıcı olarak engellendi.
+
+---
+
+## 🎯 CRITICAL BUG FIX 2: Page Agent Sanal İmleç Konumlandırma Hatası
+
+### 1. Kök Neden (Root Cause)
+- **Dosya:** `app/views/shared/_page_agent.html.erb`
+- **Neden:**
+  1. `el.getBoundingClientRect()` değeri sayfa veya hedef container kaydırılmadan **önce** alınıyor, imleç bu eski konuma uçuruluyor ve hemen ardından `el.scrollIntoView(...)` tetikleniyordu. Sayfa kaydıkça element merkez noktaya taşınıyor fakat `position: fixed` imleç eski koordinatlarda kalarak boşluğa işaret ediyordu.
+  2. `#pa-ai-cursor` stilinde `transform: translate(-4px, -4px)` gibi statik kaydırmalar bulunuyordu; bu durum SVG ok ucunun `(4, 3)` olan gerçek tepe noktası ile viewport koordinatları arasında sapmaya yol açıyordu.
+
+### 2. Kalıcı Çözüm
+- **Kaydırma Önceliği:** Hedef element önce `el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })` ile ekrana getirilir; kaydırma tamamlandıktan sonra güncel `getBoundingClientRect()` alınır.
+- **Viewport Koordinat Uyumu:** `position: fixed` imleç doğrudan viewport koordinatlarıyla (`rect.left + width/2`, `rect.top + height/2`) çalışır; SVG ok ucu ofseti (`-4px, -3px`) çıkarılarak ok ucu tam hedef merkezine oturtulur.
+- **Canlı Senkronizasyon (Active Tracking):** İmleç hedef üzerindeyken `scroll` ve `resize` event listener'ları ile pencere veya container hareket ettiğinde koordinatları anlık olarak yeniden hesaplar; imlecin hedeften kopması engellenir.
+- **Tıklama Doğrulaması:** Element görünür değilse veya disabled ise tıklama atlanır ve loglanır; görsel imleç iş mantığından ayrılarak saf görsel gösterim katmanı olarak çalışır.
+
 

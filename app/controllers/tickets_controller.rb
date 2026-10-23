@@ -113,14 +113,52 @@ class TicketsController < ApplicationController
     human_gate = params[:human_gate].present? ? ActiveModel::Type::Boolean.new.cast(params[:human_gate]) : false
     outcome = AutonomousAgentDispatcherService.new(all_unhandled: true, current_user: current_user, human_gate: human_gate).call
 
-    if outcome[:success]
-      flash[:notice] = "🤖 Autonomous Agent completed zero-touch triage & reporting for #{outcome[:processed_count]} detection(s) with ZERO human intervention!"
-      session[:last_autonomous_logs] = outcome[:logs]
-    else
-      flash[:alert] = "Autonomous Agent triage failed: #{outcome[:error]}"
-    end
+    # Security & Stability Rule: NEVER write large log arrays or analysis payloads to session cookie!
+    # Session cookie limit is 4KB (4096 bytes). Large logs will raise ActionDispatch::Cookies::CookieOverflow.
+    # Results are persisted in the database via AuditEvent and Ticket models.
 
-    redirect_back fallback_location: tickets_path
+    respond_to do |format|
+      if outcome[:success]
+        tickets_summary = (outcome[:results] || []).map do |res|
+          t = res[:ticket]
+          {
+            ticket_id: t&.id,
+            ticket_number: t&.ticket_number,
+            title: t&.title,
+            status: t&.status,
+            priority: t&.priority,
+            outcome: res[:outcome],
+            detection_id: res[:detection_id]
+          }
+        end
+
+        format.html do
+          flash[:notice] = "🤖 Autonomous Agent completed zero-touch triage & reporting for #{outcome[:processed_count]} detection(s) with ZERO human intervention!"
+          redirect_back fallback_location: tickets_path
+        end
+
+        format.json do
+          render json: {
+            success: true,
+            message: "Autonomous Agent completed zero-touch triage for #{outcome[:processed_count]} detection(s).",
+            processed_count: outcome[:processed_count],
+            tickets: tickets_summary
+          }, status: :ok
+        end
+      else
+        format.html do
+          flash[:alert] = "Autonomous Agent triage failed: #{outcome[:error]}"
+          redirect_back fallback_location: tickets_path
+        end
+
+        format.json do
+          render json: {
+            success: false,
+            error: outcome[:error] || "Autonomous Agent triage failed"
+          }, status: :unprocessable_entity
+        end
+      end
+    end
   end
 
   private

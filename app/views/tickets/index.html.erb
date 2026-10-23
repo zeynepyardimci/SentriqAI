@@ -38,18 +38,23 @@
     </div>
   </div>
 
-  <% if session[:last_autonomous_logs].present? %>
+  <% recent_agent_audits = AuditEvent.where(action: %w[autonomous_agent_zero_touch_triage page_agent_action_executed]).recent_first.limit(5) %>
+  <% if recent_agent_audits.any? %>
     <div style="margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
       <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #a78bfa; margin-bottom: 0.5rem;">
         Son Otonom Ajan Yürütme Kayıtları (Execution Log Stream):
       </div>
       <div style="background: rgba(0, 0, 0, 0.6); padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 0.75rem; color: #38bdf8; max-height: 140px; overflow-y: auto;">
-        <% session[:last_autonomous_logs].each do |log_entry| %>
-          <div><%= log_entry %></div>
+        <% recent_agent_audits.each do |audit| %>
+          <div>
+            <span style="color: #64748b;">[<%= audit.created_at.strftime('%H:%M:%S') %>]</span>
+            <strong style="color: #38bdf8;"><%= audit.trackable&.respond_to?(:ticket_number) ? audit.trackable.ticket_number : "TICKET" %></strong> &bull;
+            <span style="color: #34d399;"><%= audit.details['outcome'] || audit.details['final_status'] || audit.action.humanize %></span> &bull;
+            <span style="color: #cbd5e1;">Niyet: <%= audit.details['intent'] || audit.details['instruction'] || 'Triaj' %></span>
+          </div>
         <% end %>
       </div>
     </div>
-    <% session.delete(:last_autonomous_logs) %>
   <% end %>
 </div>
 

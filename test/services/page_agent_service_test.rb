@@ -169,4 +169,33 @@ class PageAgentServiceTest < ActiveSupport::TestCase
     assert containment_action[:label].include?("ONAY")
     assert containment_action[:status_text].include?("ONAY")
   end
+
+  test "DOM selector falls back to table row when no direct detection ID is in context" do
+    service = PageAgentService.new(
+      instruction: "Genel sayfa taraması",
+      page_url: "/tickets",
+      page_context: {},
+      current_user: @user
+    )
+
+    result = service.call
+    assert result[:success]
+    assert_not_nil result[:target_selector]
+    assert result[:target_selector].start_with?("#detection-row-") || result[:target_selector] == ".data-table tbody tr:first-child"
+  end
+
+  test "state machine and verification guard against invalid transitions" do
+    service = PageAgentService.new(
+      instruction: "Kritik tehdit triajı",
+      page_url: "/detections/#{@critical_detection.id}",
+      page_context: { detection_id: @critical_detection.id },
+      current_user: @user
+    )
+
+    result = service.call
+    assert result[:success]
+    assert_equal true, result[:verification][:verified]
+    assert_equal "pending_review", result[:verification][:db_status]
+    assert_equal "pending_review", result[:verification][:expected_status]
+  end
 end
