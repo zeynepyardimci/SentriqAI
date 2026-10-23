@@ -7,13 +7,17 @@ Sentriq AI, güvenlik operasyon merkezlerinde (SOC Seviye 1/2) çalışan analis
 
 ---
 
-## 1. Çözülen Kullanıcı Acısı (Pain Point)
+## 1. Çözülen Kullanıcı Acısı (Pain Point) ve Araştırma Kaynağı
 
-Güvenlik analistleri her vardiyada alarmların nedenini, komut satırı argümanlarını ve olası saldırı kaynağını anlamak için farklı günlükleri ve dahili prosedür dokümanlarını manuel incelemek zorunda kalmaktadır.
-- **Bulgular:** Panther Security, Abnormal Security ve TrustRadius analizleri analistlerin mesailerinin %50'ye varan kısmını alarm triajına harcadığını ve kapsamlı bir manuel araştırmanın alarm başına 15-30 dakika sürdüğünü göstermektedir.
-- **Sentriq AI Çözümü:** Telemetriyi, ebeveyn süreç soyunu ve ağ bağlantılarını tek ekranda birleştirir. RAG araması ile dahili prosedür dokümanlarını eşleştirir. LLM bağlamsal analiz motoru ile yapılandırılmış araştırma raporu üretir ve yüksek riskli durumlarda insan analistin onayına (`pending_review`) devreder.
+- **Hedef Kullanıcı:** SOC (Security Operations Center) Seviye 1 Güvenlik Analisti.
+- **Problem:** Yanlış pozitif ve düşük öncelikli alarmların analistlerin zamanını tüketmesi, alarmların neden önemli olduğunun anlaşılmasının zaman alması ve müdahale kararlarının yeterli bağlam olmadan verilmesi.
+- **Doğrulanmış Gerçek Kaynak:**  
+  [G2 CrowdStrike Falcon Endpoint Protection Platform Reviews (Sayfa 17 Pros and Cons)](https://www.g2.com/products/crowdstrike-falcon-endpoint-protection-platform/reviews?page=17&qs=pros-and-cons)  
+  *Kullanıcı Yorumu Bulgusu:* Platformun genel tehdit tespit gücüne rağmen yanlış pozitif (false-positive) alarmların analistlerin mesailerinde ciddi bir triyaj yükü yarattığı; işaretlenen bir davranışın zararlı mı yoksa meşru bir iç uygulama mı olduğunu teyit etmek için güvenlik analistlerinin değerli zamanlarını ve yoğun manuel çabalarını harcamak zorunda kaldığı açıkça belirtilmiştir.
+- **Ürünün Yeni Vaadi:**  
+  > *"Sentriq AI, güvenlik alarmlarını yalnızca biletlemez; kanıtları ve ilgili müdahale prosedürünü değerlendirerek gerekçeli bir triyaj kararı üretir, sonraki adımı önerir ve riskli müdahaleleri insan onayına bırakır."*
 
-Ayrıntılı doğrulama notları ve kaynak dürüstlüğü raporu için: [`docs/PAIN_POINT_RESEARCH.md`](file:///c:/Users/Acer/OneDrive/Masa%C3%BCst%C3%BC/SentriqAI/docs/PAIN_POINT_RESEARCH.md).
+Ayrıntılı doğrulama notları ve araştırma raporu için: [`docs/PAIN_POINT_RESEARCH.md`](docs/PAIN_POINT_RESEARCH.md).
 
 ---
 
@@ -21,9 +25,14 @@ Ayrıntılı doğrulama notları ve kaynak dürüstlüğü raporu için: [`docs/
 
 - **Backend:** Ruby on Rails 8.1.4, Ruby 3.4.7
 - **Veritabanı:** PostgreSQL 16 + pgvector uzantısı
-- **Frontend:** Vanilla CSS (Curated Dark Mode SOC Theme: Slate `#0B0F19`, Glowing Cyan `#06B6D4`, Violet `#8B5CF6`), Hotwire / Turbo
+- **Frontend:** Vanilla CSS (Dark SOC Theme: Slate `#0B0F19`, Glowing Cyan `#06B6D4`, Violet `#8B5CF6`), Hotwire / Turbo (Frameworksüz saf CSS)
 - **Web Sunucusu:** Puma 8.0.2 / Thruster
-- **AI / LLM Sağlayıcısı:** Değiştirilebilir yapılandırma (`OPENAI_API_KEY` veya `GEMINI_API_KEY`). Harici anahtar yoksa **Sentriq AI Contextual Local Engine** şeffaf biçimde devreye girer ve simüle mod etiketi gösterilir.
+- **AI / LLM Sağlayıcısı:** Değiştirilebilir çoklu sağlayıcı mimarisi:
+  - xAI Grok API (`GROK_API_KEY` / `XAI_API_KEY`)
+  - Groq Llama 3.3 70B (`GROQ_API_KEY`)
+  - OpenAI (`OPENAI_API_KEY`)
+  - Google Gemini (`GEMINI_API_KEY`)
+  - **Sentriq Contextual Local Engine:** Harici anahtar tanımlı olmadığında veya API hatasında şeffaf fallback devreye girer (`simulated_local` etiketiyle dürüstçe gösterilir).
 - **Güvenlik:** Brakeman SAST (0 güvenlik uyarısı), CSRF/XSS koruması, token bazlı agent yetkilendirmesi, prompt injection arındırma katmanı.
 
 ---
@@ -214,19 +223,24 @@ Sentriq AI çoklu LLM sağlayıcı mimarisini destekler:
    ruby bin/rails db:seed
    ```
 
-4. **Testleri Çalıştırın (43 test, 210 assertion, 0 hata):**
+4. **Testleri Çalıştırın (56 test, 295 assertion, 0 hata, 0 başarısızlık):**
    ```bash
-   ruby bin/rails test
+   bundle exec rails test
    ```
 
-5. **Güvenlik Taramasını Çalıştırın:**
+5. **SLA Kontrol Görevini Çalıştırın:**
    ```bash
-   ruby bin/brakeman -q
+   bundle exec rake sentriq:check_sla
    ```
 
-6. **Sunucuyu Başlatın:**
+6. **Güvenlik Taramasını Çalıştırın (Brakeman SAST - 0 uyarı):**
    ```bash
-   ruby bin/rails server -p 3000
+   bundle exec brakeman -q
+   ```
+
+7. **Sunucuyu Başlatın:**
+   ```bash
+   bundle exec rails server -b 127.0.0.1 -p 3000
    ```
    Tarayıcınızda açın: `http://127.0.0.1:3000/`
 
@@ -234,12 +248,35 @@ Sentriq AI çoklu LLM sağlayıcı mimarisini destekler:
 
 ## 6. Canlı Demo ve Etkileşim Adımları
 
-1. **Detections Triage (`/detections`):** Sentetik tespitleri inceleyin, SLA durumlarını (15 dakikalık kural) görün.
-2. **AI ile Araştır (`/detections/:id`):** "AI ile Araştır" butonuna basın; Rails backend telemetriyi toplar, RAG ile runbook parçalarını getirir ve araştırma raporu üretir.
-3. **Agent Activity Demo (`/tickets/demo`):**
-   - **Senaryo A (Aktif Tehdit):** Agent ticket açar, LLM aktif tehdidi tespit eder, runbook iliştirir ve `pending_review` durumuna geçirir.
-   - **Senaryo B (Bağlamsal Test):** "Acil" kelimesi içeren tatbikat mesajını test edin; sistemin kelime tuzağına düşmeyip düşük öncelikli olarak sınıflandırdığını görün.
-4. **Human-in-the-Loop Kararı (`/tickets/:id`):** İnsan analist olarak kararı onaylayın veya düzenleyin; durumun `resolved` olduğunu ve API üzerinden anında okunabildiğini doğrulayın.
+### 6.1. Terminal Üzerinden Agent-First API Çağrısı (cURL Örneği)
+Arayüze hiç dokunmadan güvenlik ajanının olay oluşturması ve triyaj kararı alması:
+
+```bash
+curl -X POST http://127.0.0.1:3000/api/v1/tickets \
+  -H "Authorization: Bearer test-valid-agent-token-12345" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: soar-demo-event-001" \
+  -d '{
+    "title": "Volume Shadow Copy Deletion via vssadmin",
+    "description": "vssadmin.exe delete shadows /all /quiet executed on WKSTN-SRV-01",
+    "priority": "critical",
+    "auto_triage": true
+  }'
+```
+
+**Dönen Yapılandırılmış Karar:**
+- `severity`: `"critical"`
+- `classification`: `"active_threat_containment"`
+- `confidence`: `88` (`confidence_note` ile model sezgisel puanı olduğu vurgulanır)
+- `requires_human_approval`: `true` (Cihaz izolasyonu gibi yıkıcı aksiyonlar insan onayı olmadan çalışmaz)
+- `matched_runbook`: Eşleşen gerçek doküman veya `"No matching runbook found in knowledge base"`
+- Bilet durumu otomatik olarak `pending_review` (insan onayı bekliyor) olarak veritabanına işlenir.
+
+### 6.2. Web Arayüzünde Doğrulama
+1. **Bilet Listesi (`/tickets`):** API üzerinden açılan biletin listeye anında yansıdığını ve durumunun `pending_review` olduğunu görün.
+2. **Bilet İnceleme & Onay (`/tickets/:id`):** Olay özetini, LLM kararını ve runbook eşleşmesini inceleyin; "Karantinaya Al (Simüle İzolasyon)" veya onay butonuna tıklayın.
+3. **Denetim İzi (Audit Log):** Onay sonrasında denetim kaydına `simulated_host_isolation_executed` kaydının işlendiğini ve durumun `resolved` olduğunu görün.
+4. **SLA Süresi ve Eskalasyon:** Belirlenen SLA süresi (15 dk) aşıldığında sistemin olayı `escalation_required` / `pending_review` durumuna geçirdiğini doğrulayın.
 
 ---
 
@@ -247,5 +284,21 @@ Sentriq AI çoklu LLM sağlayıcı mimarisini destekler:
 
 Uygulama Docker ve Render için tam uyumludur:
 - `Dockerfile`: Multi-stage, jemalloc optimizasyonlu, non-root `rails` kullanıcısı ile çalışır.
-- `render.yaml`: Tek tıkla Render Blueprint ile PostgreSQL ve Web servisi kurar.
+- `render.yaml`: Tek tıkla Render Blueprint ile PostgreSQL ve Web servisi kurar (Sağlık kontrolü: `/up`).
 - `bin/docker-entrypoint`: Otomatik migration ve seed akışı içerir.
+
+---
+
+## 8. Bilinen Eksikler ve Yapamadıklarım
+
+- **Canlı Public Bulut URL'si:** Kullanıcı tarafından harici bir Render API anahtarı veya canlı sunucu ortamı atanmadığı için uygulama genel internetteki canlı bir Render URL'si yerine yerel sunucu (`http://127.0.0.1:3000`) ve Docker ortamında uçtan uca doğrulanmıştır. `render.yaml` ve `Dockerfile` üretime hazır teslim edilmiştir.
+- **Canlı LLM Anahtarı:** Ortam değişkenlerinde harici bir `GROQ_API_KEY` veya `OPENAI_API_KEY` tanımlı olmadığı geliştirme anlarında Sentriq Contextual Local Engine devreye girmekte ve arayüzde şeffafça simüle mod etiketi gösterilmektedir.
+- **Gerçek Cihaz İzolasyonu:** Güvenlik ve sistem bütünlüğü kuralları gereği, gerçek endpoint ajanlarına yıkıcı komut gönderilmemekte, insan onayı sonrasında `simulated_host_isolation` aksiyonu kaydedilmektedir.
+
+---
+
+## 9. GitHub Actions Test Durumu
+
+- CI İş Akışı: `.github/workflows/ci.yml` (Brakeman SAST, RuboCop, Rails Unit/Integration testleri).
+- Yerel Test Başarısı: **56 test, 295 assertion, 0 hata, 0 başarısızlık (%100 Başarı)**.
+

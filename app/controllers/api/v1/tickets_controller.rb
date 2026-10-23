@@ -1,7 +1,7 @@
 module Api
   module V1
     class TicketsController < BaseController
-      before_action :set_ticket, only: [:show, :analyze, :add_note, :escalate, :human_decision]
+      before_action :set_ticket, only: [:show, :analyze, :add_note, :escalate, :human_decision, :apply_human_decision]
 
       # POST /api/v1/tickets
       def create
@@ -11,7 +11,7 @@ module Api
           existing = Ticket.find_by(idempotency_key: idempotency_key)
           if existing
             response.headers["X-Idempotent-Replay"] = "true"
-            render json: serialize_ticket(existing), status: :ok
+            render json: serialize_ticket(existing, detailed: true), status: :ok
             return
           end
         end
@@ -43,7 +43,29 @@ module Api
           }
         )
 
-        render json: serialize_ticket(ticket), status: :created
+        should_triage = ActiveModel::Type::Boolean.new.cast(params[:auto_triage]) || ActiveModel::Type::Boolean.new.cast(params[:triage])
+
+        if should_triage
+          analysis_result = TicketContextualAnalyzerService.new(ticket: ticket, current_user: current_agent_user).call
+          analysis = analysis_result[:analysis]
+
+          render json: serialize_ticket(ticket, detailed: true).merge(
+            triage: {
+              severity: ticket.priority,
+              confidence: analysis["confidence"],
+              confidence_note: "Model heuristic confidence score; not an actuarial probability.",
+              classification: analysis["classification"] || analysis["intent"],
+              evidence: analysis["evidence"] || [],
+              reasoning: analysis["reasoning"] || analysis["rationale"],
+              matched_runbook: analysis["matched_runbook"] || "No matching runbook found in knowledge base",
+              recommended_action: analysis["recommended_action"],
+              requires_human_approval: analysis["requires_human_approval"],
+              status: ticket.status
+            }
+          ), status: :created
+        else
+          render json: serialize_ticket(ticket), status: :created
+        end
       end
 
       # GET /api/v1/tickets/:id
@@ -118,6 +140,28 @@ module Api
           human_decision_notes: @ticket.human_decision_notes,
           human_reviewer: @ticket.human_reviewer ? { id: @ticket.human_reviewer.id, name: @ticket.human_reviewer.name, role: @ticket.human_reviewer.role } : nil,
           human_reviewed_at: @ticket.human_reviewed_at&.iso8601
+        }, status: :ok
+      end
+
+      # POST /api/v1/tickets/:id/human_decision
+      def apply_human_decision
+        decision = params.require(:decision)
+        notes = params[:notes].presence || "Human analyst decision via API: #{decision}"
+
+        @ticket.apply_human_decision!(
+          decision: decision,
+          notes: notes,
+          reviewer: current_agent_user
+        )
+
+        render json: {
+          ticket_id: @ticket.id,
+          ticket_number: @ticket.ticket_number,
+          status: @ticket.status,
+          human_decision: @ticket.human_decision,
+          human_decision_notes: @ticket.human_decision_notes,
+          simulated_action_taken: %w[approved approve_containment resolved].include?(decision.to_s) ? "simulated_host_isolation" : nil,
+          message: "Human decision '#{decision}' successfully applied"
         }, status: :ok
       end
 

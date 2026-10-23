@@ -50,19 +50,36 @@ class PageAgentController < ApplicationController
     if key.start_with?("gsk_") || provider == "groq"
       ENV["GROQ_API_KEY"] = key
       provider_name = "Groq Live (Llama 3.3 70B)"
+      persist_key("groq_api_key", key)
     elsif key.start_with?("xai-") || provider == "grok"
       ENV["GROK_API_KEY"] = key
       provider_name = "Grok (xAI Live)"
+      persist_key("grok_api_key", key)
     else
-      # Default to Groq if key format unknown or user specifies
       ENV["GROQ_API_KEY"] = key
-      provider_name = "Groq / OpenAI-compatible Live"
+      provider_name = "Groq / OpenAI Uyumlu Canlı Motor"
+      persist_key("groq_api_key", key)
     end
 
     render json: {
       success: true,
-      message: "#{provider_name} başarıyla etkinleştirildi!",
+      message: "#{provider_name} başarıyla etkinleştirildi ve kalıcı olarak kaydedildi!",
       provider: provider_name
     }, status: :ok
+  end
+
+  private
+
+  def persist_key(field, value)
+    keys_file = Rails.root.join("config", "sentriq_api_keys.json")
+    existing = begin
+      File.exist?(keys_file) ? JSON.parse(File.read(keys_file)) : {}
+    rescue StandardError
+      {}
+    end
+    existing[field] = value
+    File.write(keys_file, JSON.pretty_generate(existing))
+  rescue StandardError => e
+    Rails.logger.warn("Could not write sentriq_api_keys.json: #{e.message}")
   end
 end

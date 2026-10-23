@@ -243,17 +243,21 @@ class TicketContextualAnalyzerService
       Analyze the security ticket and associated telemetry.
       CRITICAL RULE: DO NOT rely on simple keyword matches like 'urgent', 'thanks', 'critical' or 'drill'.
       Evaluate the full context: is this a retrospective drill recap, a benign inquiry, or an active security threat?
-      Output JSON strictly matching:
+      Output JSON strictly matching this schema:
       {
+        "severity": "low|medium|high|critical",
+        "confidence": integer (0-100),
+        "classification": "string describing threat classification or benign activity",
+        "evidence": ["concrete telemetry observations, NOT model hallucinations"],
+        "reasoning": "detailed forensic rationale explaining the decision",
+        "matched_runbook": "title/quote of matched internal runbook or 'No matching runbook found in knowledge base'",
+        "recommended_action": "concrete containment/investigation action recommendation",
+        "requires_human_approval": boolean (MUST be true for any high/critical threat or isolation action),
         "intent": "string",
         "priority": "low|medium|high|critical",
-        "recommended_action": "string",
         "draft_response": "string",
         "rationale": "string",
-        "confidence": integer (0-100),
-        "requires_human_review": boolean,
-        "source_refs": [{"document_id": int, "quote": "string", "relevance_explanation": "string"}],
-        "evidence_refs": [{"evidence_id": int, "description": "string"}]
+        "requires_human_review": boolean
       }
     SYS
   end

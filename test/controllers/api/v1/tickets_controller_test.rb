@@ -152,4 +152,96 @@ class Api::V1::TicketsControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil audit
     assert_equal lead_reviewer.id, audit.user_id
   end
+
+  # Requirement: Agent creates ticket with auto_triage: true and receives structured LLM decision schema
+  test "agent creates ticket with auto_triage and receives structured decision schema" do
+    assert_difference "Ticket.count", 1 do
+      post api_v1_tickets_url, params: {
+        title: "Volume Shadow Copy Deletion Detected via vssadmin",
+        description: "Process vssadmin.exe executed 'delete shadows /all /quiet' on SRV-FILE-01",
+        priority: "critical",
+        detection_id: @detection.id,
+        auto_triage: true
+      }.to_json, headers: @headers
+    end
+
+    assert_response :created
+    json = JSON.parse(response.body)
+
+    assert_not_nil json["id"]
+    assert_not_nil json["triage"]
+
+    triage = json["triage"]
+    assert_equal "critical", triage["severity"]
+    assert_not_nil triage["confidence"]
+    assert_not_nil triage["confidence_note"]
+    assert_not_nil triage["classification"]
+    assert triage["evidence"].is_a?(Array)
+    assert triage["evidence"].any?
+    assert_not_nil triage["reasoning"]
+    assert_not_nil triage["matched_runbook"]
+    assert_not_nil triage["recommended_action"]
+    assert_equal true, triage["requires_human_approval"]
+
+    # Critical threat must be held in pending_review for human signoff, never automatically executed
+    persisted = Ticket.find(json["id"])
+    assert_equal "pending_review", persisted.status
+  end
+
+  # Requirement: Low-risk / routine event is not closed irrevocably, remains open for review
+  test "low-risk routine event is not closed automatically and remains open" do
+    post api_v1_tickets_url, params: {
+      title: "Routine Scheduled Backup Script Execution",
+      description: "Weekly maintenance script completed. Reference drill quote 'acil yedekleme tatbikatı'.",
+      priority: "low",
+      auto_triage: true
+    }.to_json, headers: @headers
+
+    assert_response :created
+    json = JSON.parse(response.body)
+    triage = json["triage"]
+
+    assert_equal "low", triage["severity"]
+    assert_equal false, triage["requires_human_approval"]
+
+    # Not closed irrevocably!
+    persisted = Ticket.find(json["id"])
+    assert_equal "open", persisted.status
+  end
+
+  # Requirement: POST /api/v1/tickets/:id/human_decision applies human decision via API
+  test "human decision applied via POST api_v1_ticket_human_decision creates simulated action and resolves" do
+    ticket = Ticket.create!(
+      title: "Ransomware Ingress Review",
+      description: "Requires containment approval",
+      priority: "critical",
+      status: "pending_review",
+      user: @agent_user
+    )
+
+    post human_decision_api_v1_ticket_url(ticket), params: {
+      decision: "approved",
+      notes: "Containment approved by SOC Lead."
+    }.to_json, headers: @headers
+
+    assert_response :ok
+    json = JSON.parse(response.body)
+
+    assert_equal "resolved", json["status"]
+    assert_equal "approved", json["human_decision"]
+    assert_equal "simulated_host_isolation", json["simulated_action_taken"]
+
+    # Verify simulation audit event
+    sim_audit = AuditEvent.find_by(trackable: ticket, action: "simulated_host_isolation_executed")
+    assert_not_nil sim_audit
+    assert_equal true, sim_audit.details["simulated"]
+  end
+
+  # Requirement: Missing required parameters returns 400 Bad Request
+  test "missing required title or description returns 400 Bad Request" do
+    post api_v1_tickets_url, params: { priority: "high" }.to_json, headers: @headers
+    assert_response :bad_request
+    json = JSON.parse(response.body)
+    assert_equal "bad_request", json["error"]
+  end
 end

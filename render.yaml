@@ -5,6 +5,7 @@ services:
     plan: free
     region: frankfurt
     dockerfilePath: ./Dockerfile
+    healthCheckPath: /up
     envVars:
       - key: RAILS_MASTER_KEY
         sync: false
@@ -12,13 +13,20 @@ services:
         fromDatabase:
           name: sentriq-postgres
           property: connectionString
+        sync: false
       - key: RAILS_ENV
         value: production
       - key: RAILS_SERVE_STATIC_FILES
         value: "true"
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROK_API_KEY
+        sync: false
       - key: OPENAI_API_KEY
         sync: false
       - key: GEMINI_API_KEY
+        sync: false
+      - key: RAGIE_API_KEY
         sync: false
 
 databases:

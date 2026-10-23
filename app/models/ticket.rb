@@ -98,13 +98,27 @@ class Ticket < ApplicationRecord
 
       save!
 
+      # Record simulated host isolation action if analyst approved containment
+      if %w[approved approve_containment resolved].include?(decision.to_s)
+        AuditEvent.create!(
+          trackable: self,
+          user: reviewer,
+          action: "simulated_host_isolation_executed",
+          details: {
+            hostname: detection&.hostname || "workspace-host",
+            simulated: true,
+            notes: notes.presence || "Analyst approved recommended containment"
+          }
+        )
+      end
+
       ticket_notes.create!(
         user: reviewer,
         author_type: "human",
         author_name: reviewer.name,
         note_type: "human_decision",
         body: notes.presence || "Human review decision: #{decision}",
-        metadata: { decision: decision, reviewer_role: reviewer.role }
+        metadata: { decision: decision, reviewer_role: reviewer.role, simulated_action: "host_isolation" }
       )
 
       AuditEvent.create!(
@@ -115,6 +129,33 @@ class Ticket < ApplicationRecord
           decision: decision,
           notes: notes,
           final_status: status
+        }
+      )
+    end
+  end
+
+  def check_sla!(current_time = Time.current)
+    return if status.in?(%w[resolved closed pending_review])
+    return unless priority.in?(%w[high critical])
+
+    threshold = ENV.fetch("SLA_THRESHOLD_MINUTES", "15").to_i
+    elapsed_minutes = (current_time - created_at) / 60.0
+
+    if elapsed_minutes >= threshold
+      escalate_to_human!(
+        reason: "SLA süresi aşıldı (#{threshold} dk). Yüksek/kritik öncelikli bilet otomatik eskalasyonla insan inceleme kuyruğuna (pending_review) alındı.",
+        user: nil
+      )
+
+      AuditEvent.create!(
+        trackable: self,
+        user: nil,
+        action: "ticket_sla_breached",
+        details: {
+          threshold_minutes: threshold,
+          elapsed_minutes: elapsed_minutes.round(1),
+          priority: priority,
+          escalated_to: "pending_review"
         }
       )
     end

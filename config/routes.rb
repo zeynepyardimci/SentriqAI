@@ -47,6 +47,7 @@ Rails.application.routes.draw do
           post :notes, to: "tickets#add_note"
           post :escalate
           get :human_decision
+          post :human_decision, to: "tickets#apply_human_decision"
         end
       end
 

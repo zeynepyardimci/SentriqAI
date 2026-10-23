@@ -2,13 +2,14 @@ class TicketAnalysisSchemaValidator
   class ValidationError < StandardError; end
 
   REQUIRED_KEYS = %w[
-    intent
-    priority
-    recommended_action
-    draft_response
-    rationale
+    severity
     confidence
-    requires_human_review
+    classification
+    evidence
+    reasoning
+    matched_runbook
+    recommended_action
+    requires_human_approval
   ].freeze
 
   def self.validate(payload)
@@ -21,32 +22,56 @@ class TicketAnalysisSchemaValidator
   end
 
   def validate!
-    data = parse_payload(@payload)
+    raw = parse_payload(@payload)
+    data = raw.respond_to?(:deep_stringify_keys) ? raw.deep_stringify_keys : raw
+
+    # Normalize aliases for backward/forward compatibility
+    data["severity"] ||= data["priority"]
+    data["priority"] ||= data["severity"]
+    data["classification"] ||= data["intent"]
+    data["intent"] ||= data["classification"]
+    data["reasoning"] ||= data["rationale"]
+    data["rationale"] ||= data["reasoning"]
+    data["confidence"] = data["confidence"].to_i if data["confidence"].is_a?(String) && data["confidence"].match?(/^\d+$/)
+    data["requires_human_approval"] = data["requires_human_review"] if data["requires_human_approval"].nil?
+    data["requires_human_review"] = data["requires_human_approval"] if data["requires_human_review"].nil?
+    data["recommended_action"] ||= data["recommended_steps"].is_a?(Array) ? data["recommended_steps"].join(", ") : nil
+    data["draft_response"] ||= data["reasoning"]
+
+    # Evidence normalization
+    data["evidence"] ||= data["evidence_refs"] || data[:evidence] || []
+    if data["evidence"].is_a?(Array) && data["evidence"].first.is_a?(Hash)
+      data["evidence"] = data["evidence"].map { |e| e["description"] || e[:description] || e.to_s }
+    end
+    data["evidence"] = [data["evidence"].to_s] unless data["evidence"].is_a?(Array)
+
+    # Matched runbook normalization
+    data["matched_runbook"] ||= data["source_refs"] || data[:matched_runbook]
+    if data["matched_runbook"].is_a?(Array) && data["matched_runbook"].any?
+      first_ref = data["matched_runbook"].first
+      data["matched_runbook"] = first_ref.is_a?(Hash) ? (first_ref["quote"] || first_ref[:quote] || first_ref.to_s) : first_ref.to_s
+    elsif data["matched_runbook"].blank?
+      data["matched_runbook"] = "No matching runbook found in knowledge base"
+    end
 
     REQUIRED_KEYS.each do |key|
-      unless data.key?(key) || data.key?(key.to_sym)
+      unless data.key?(key) && data[key] != nil
         @errors << "Missing required key '#{key}'"
       end
     end
 
-    intent = data["intent"] || data[:intent]
-    if intent.blank? || !intent.is_a?(String)
-      @errors << "'intent' must be a non-empty string"
+    severity = data["severity"].to_s.downcase
+    unless %w[low medium high critical].include?(severity)
+      @errors << "'severity' must be one of low, medium, high, critical"
     end
 
-    priority = (data["priority"] || data[:priority]).to_s.downcase
-    unless %w[low medium high critical].include?(priority)
-      @errors << "'priority' must be one of low, medium, high, critical"
-    end
-
-    conf = data["confidence"] || data[:confidence]
+    conf = data["confidence"]
     unless conf.is_a?(Numeric) && conf >= 0 && conf <= 100
       @errors << "'confidence' must be a number between 0 and 100"
     end
 
-    human_rev = data["requires_human_review"].nil? ? data[:requires_human_review] : data["requires_human_review"]
-    unless [true, false].include?(human_rev)
-      @errors << "'requires_human_review' must be a boolean"
+    unless [true, false].include?(data["requires_human_approval"])
+      @errors << "'requires_human_approval' must be a boolean"
     end
 
     if @errors.any?

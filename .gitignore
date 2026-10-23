@@ -35,3 +35,6 @@ desktop.ini
 /scratch/*
 !/scratch/.keep
 
+# Ignore locally saved user API keys
+config/sentriq_api_keys.json
+

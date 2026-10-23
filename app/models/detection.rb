@@ -66,19 +66,24 @@ class Detection < ApplicationRecord
     )
   end
 
+  def self.sla_threshold_minutes
+    ENV.fetch("SLA_THRESHOLD_MINUTES", "15").to_i
+  end
+
   def check_sla!(current_time = Time.current)
     return if status.in?(%w[solved pending_review investigating])
     return unless severity.in?(%w[high critical])
 
+    threshold = self.class.sla_threshold_minutes
     elapsed_minutes = (current_time - triggered_at) / 60.0
-    if elapsed_minutes >= SLA_THRESHOLD_MINUTES && !sla_risk?
+    if elapsed_minutes >= threshold && !sla_risk?
       update_columns(sla_risk: true, sla_breached_at: current_time)
       AuditEvent.create!(
         trackable: self,
         user: nil,
         action: "sla_breached",
         details: {
-          threshold_minutes: SLA_THRESHOLD_MINUTES,
+          threshold_minutes: threshold,
           elapsed_minutes: elapsed_minutes.round(1),
           severity: severity
         }

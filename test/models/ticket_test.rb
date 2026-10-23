@@ -50,7 +50,40 @@ class TicketTest < ActiveSupport::TestCase
     assert_includes note.body, "Unusual privileged memory tampering"
   end
 
-  test "apply_human_decision records resolution, notes, reviewer, and audit trail" do
+  test "invalid status transition raises error" do
+    @ticket.transition_to!("investigating")
+    @ticket.transition_to!("pending_review")
+    @ticket.transition_to!("resolved")
+
+    # Invalid: cannot transition directly from resolved to pending_review
+    assert_raises(ActiveRecord::RecordInvalid) do
+      @ticket.transition_to!("pending_review")
+    end
+  end
+
+  test "SLA check does not breach before threshold" do
+    # 10 minutes elapsed (threshold is 15 minutes)
+    travel_to 10.minutes.from_now do
+      @ticket.check_sla!
+      assert_equal "open", @ticket.reload.status
+      assert_nil AuditEvent.find_by(trackable: @ticket, action: "ticket_sla_breached")
+    end
+  end
+
+  test "SLA check breaches after threshold using travel_to and escalates to pending_review" do
+    # 20 minutes elapsed (threshold is 15 minutes)
+    travel_to 20.minutes.from_now do
+      @ticket.check_sla!
+      assert_equal "pending_review", @ticket.reload.status
+
+      audit = AuditEvent.find_by(trackable: @ticket, action: "ticket_sla_breached")
+      assert_not_nil audit
+      assert_equal 15, audit.details["threshold_minutes"]
+      assert_equal "high", audit.details["priority"]
+    end
+  end
+
+  test "apply_human_decision records resolution, notes, reviewer, simulated action, and audit trail" do
     @ticket.transition_to!("pending_review")
 
     @ticket.apply_human_decision!(
@@ -64,8 +97,14 @@ class TicketTest < ActiveSupport::TestCase
     assert_equal @lead.id, @ticket.human_reviewer_id
     assert_not_nil @ticket.human_reviewed_at
 
+    # Verify human review audit event
     audit = AuditEvent.find_by(trackable: @ticket, action: "ticket_human_reviewed")
     assert_not_nil audit
     assert_equal @lead.id, audit.user_id
+
+    # Verify simulated host containment audit event
+    sim_audit = AuditEvent.find_by(trackable: @ticket, action: "simulated_host_isolation_executed")
+    assert_not_nil sim_audit
+    assert_equal true, sim_audit.details["simulated"]
   end
 end

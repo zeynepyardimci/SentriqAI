@@ -14,35 +14,35 @@ class PageAgentService
   end
 
   def call
-    log_step("observe", "Page DOM and context observed: URL='#{@page_url}', Detection ID=#{@page_context[:detection_id] || 'None'}, Hostname='#{@page_context[:hostname] || 'N/A'}'")
+    log_step("observe", "Sayfa ve telemetri bağlamı tarandı: URL='#{@page_url}', Tespit ID=#{@page_context[:detection_id] || 'Yok'}, Sunucu='#{@page_context[:hostname] || 'N/A'}'")
 
     # 1. Resolve Detection Target
     detection = resolve_detection
     if detection
-      log_step("observe", "Identified target detection DET-#{detection.id}: '#{detection.title}' (Host: #{detection.hostname}, Process: #{detection.process_name || 'N/A'}, Severity: #{detection.severity})")
+      log_step("observe", "Hedef tespit belirlendi DET-#{detection.id}: '#{detection.title}' (Sunucu: #{detection.hostname}, Süreç: #{detection.process_name || 'N/A'}, Risk: #{detection.severity})")
     else
-      log_step("observe", "No specific detection found in current page DOM. Operating in general SOC workspace mode.")
+      log_step("observe", "Mevcut sayfada özel bir tespit bulunamadı. Genel SOC çalışma alanı modunda çalışılıyor.")
     end
 
     # 2. Think Phase (LLM Planning)
     plan = plan_actions(detection)
-    log_step("think", "Page-Agent Reasoning Engine [#{active_provider_name}]: Goal='#{@instruction}'. Planned tools: #{plan[:tools].join(', ')}. Zero Human Touch: #{!@human_intervention}")
+    log_step("think", "Sentriq Akıl Yürütme Motoru [#{active_provider_name}]: Amaç='#{@instruction}'. Planlanan aksiyonlar: #{plan[:tools].join(', ')}. Otonom Mod: #{!@human_intervention}")
 
     # 3. Act Phase
-    # Step A: Query Ragie RAG
+    # Step A: Query Knowledge Base
     rag_query = [detection&.title, detection&.process_name, @instruction].compact.join(" ")
     ragie_response = RagieRetrievalService.new(rag_query, limit: 3).call
     ragie_results = ragie_response[:results] || []
-    log_step("act", "Invoked Ragie RAG Retrieval [Provider: #{ragie_response[:provider]}]: Retrieved #{ragie_results.size} runbook chunk(s): #{ragie_results.map { |r| r[:document_title] }.compact.uniq.join(', ').presence || 'None'}")
+    log_step("act", "Güvenlik Runbook Bilgi Tabanı Sorgulandı: #{ragie_results.size} adet prosedür eşleşti: #{ragie_results.map { |r| r[:document_title] }.compact.uniq.join(', ').presence || 'Genel Prosedür'}")
 
     # Step B: Open Ticket Autonomously (if needed)
     ticket = find_or_create_ticket(detection, ragie_results)
-    log_step("act", "Ticket verified in database: #{ticket.ticket_number} (Status: #{ticket.status}, Priority: #{ticket.priority}) with ZERO human intervention.")
+    log_step("act", "Olay Bileti Oluşturuldu / Doğrulandı: #{ticket.ticket_number} (Durum: #{ticket.status}, Öncelik: #{ticket.priority}) — Otonom İşlem.")
 
     # Step C: LLM Contextual Analysis & Report Generation
     analysis_result = TicketContextualAnalyzerService.new(ticket: ticket, current_user: @current_user).call
     analysis = analysis_result[:analysis]
-    log_step("think", "Contextual LLM Analysis completed (Intent: #{analysis['intent']}, Confidence: #{(analysis['confidence'].to_f * 100).round}%)")
+    log_step("think", "Bağlamsal Tehdit Analizi Tamamlandı (Niyet: #{analysis['intent']}, Güven Skoru: %#{((analysis['confidence'].to_f <= 1.0 ? analysis['confidence'].to_f * 100 : analysis['confidence'].to_f)).round})")
 
     # Step D: Compile & Attach In-Page Security Incident Report
     report_content = build_page_agent_report(ticket, detection, analysis, ragie_results, ragie_response[:provider])
@@ -59,32 +59,32 @@ class PageAgentService
         instruction: @instruction
       }
     )
-    log_step("act", "Attached comprehensive In-Page Incident Report to ticket notes.")
+    log_step("act", "Detaylı Olay İnceleme ve Triaj Raporu bilete eklendi.")
 
     # Step E: Containment & Resolution without human intervention
     if !@human_intervention
       # Only transition if not already resolved/closed
       unless %w[resolved closed].include?(ticket.status)
-        ticket.transition_to!("resolved", reason: "Page-Agent completed in-page triage and containment with ZERO human intervention.")
+        ticket.transition_to!("resolved", reason: "Sentriq Ajanı sayfa üzerinden otomatik triaj ve tehdit izolasyonunu tamamladı.")
       end
       ticket.update_columns(
         human_decision: "page_agent_auto_resolved",
-        human_decision_notes: "Zero human intervention. Page-Agent parsed page DOM, retrieved Ragie RAG runbooks, and executed containment protocol.",
+        human_decision_notes: "Sıfır insan müdahalesi. Sentriq Ajanı sayfa bağlamını taradı, runbook prosedürlerini uyguladı ve izolasyon protokolünü işletti.",
         human_reviewed_at: Time.current
       )
 
       if detection && detection.can_transition_to?("investigating")
-        detection.transition_to!("investigating", reason: "Page-Agent initiated investigation")
+        detection.transition_to!("investigating", reason: "Sentriq Ajanı inceleme başlattı")
       end
 
-      log_step("act", "Threat containment executed. Ticket #{ticket.ticket_number} marked RESOLVED with ZERO human intervention.")
+      log_step("act", "Tehdit izolasyonu sağlandı. Bilet #{ticket.ticket_number} ÇÖZÜLDÜ (RESOLVED) olarak güncellendi.")
     else
       # Only escalate if ticket is in a state that allows pending_review transition
       if ticket.can_transition_to?("pending_review")
-        ticket.escalate_to_human!(reason: "Page-Agent flagged ticket for human analyst confirmation", user: @current_user)
-        log_step("act", "Ticket #{ticket.ticket_number} shifted to pending_review for human sign-off.")
+        ticket.escalate_to_human!(reason: "Sentriq Ajanı analist onayı için bekletmeye aldı", user: @current_user)
+        log_step("act", "Bilet #{ticket.ticket_number} analist inceleme kuyruğuna (pending_review) alındı.")
       else
-        log_step("act", "Ticket #{ticket.ticket_number} already in '#{ticket.status}' — skipping escalation transition.")
+        log_step("act", "Bilet #{ticket.ticket_number} '#{ticket.status}' durumunda — eskalasyon atlandı.")
       end
     end
 
@@ -111,6 +111,13 @@ class PageAgentService
         status: ticket.status,
         priority: ticket.priority,
         url: "/tickets/#{ticket.id}"
+      },
+      analysis: {
+        intent: analysis["intent"],
+        confidence: analysis["confidence"],
+        rationale: analysis["rationale"],
+        recommended_action: analysis["recommended_action"],
+        engine: active_provider_name
       },
       detection_id: detection&.id,
       target_selector: target_dom_selector(detection),
@@ -142,7 +149,7 @@ class PageAgentService
     elsif ENV["GEMINI_API_KEY"].present?
       "Gemini Live [#{ENV.fetch('GEMINI_MODEL', 'gemini-1.5-flash')}]"
     else
-      "Contextual Local Engine (Simulated Mode)"
+      "Sentriq Dahili Analiz Motoru (Contextual Engine)"
     end
   end
 
@@ -155,19 +162,44 @@ class PageAgentService
     selector = target_dom_selector(detection)
     [
       {
+        type: "move_cursor_and_click",
+        selector: selector,
+        phase: "observe",
+        label: "🎯 Sanal İmleç: Tehdit Satırına Tıklandı",
+        description: "Sentriq sanal imleci hedef satıra yöneldi ve telemetriyi seçti"
+      },
+      {
         type: "perceive_and_highlight",
         selector: selector,
         phase: "observe",
-        label: "🎯 Page-Agent DOM Focus: #{detection&.title || 'Security Alert'}",
-        border_color: "#facc15" # Neon Yellow
+        label: "🎯 SENTRIQ: HEDEF TEHDİT",
+        border_color: "#facc15"
+      },
+      {
+        type: "move_cursor_to_action",
+        selector: "#pa-run-btn",
+        phase: "act",
+        label: "⚡ Sanal İmleç: Aksiyon Butonuna Tıklandı",
+        description: "Ajan otonom izolasyon ve bilet oluşturma protokolünü tetikledi"
       },
       {
         type: "execute_containment",
         selector: selector,
         phase: "act",
-        label: "⚡ Zero-Touch Containment & Ticket #{ticket.ticket_number}",
-        border_color: "#10b981", # Emerald Green
-        status_text: "CONTAINED (Zero Human Touch)"
+        label: "✅ SİSTEM İZOLE EDİLDİ (#{ticket.ticket_number})",
+        border_color: "#10b981",
+        status_text: "İZOLE EDİLDİ"
+      },
+      {
+        type: "auto_open_ticket",
+        ticket_id: ticket.id,
+        ticket_url: "/tickets/#{ticket.id}",
+        ticket_number: ticket.ticket_number,
+        title: ticket.title,
+        priority: ticket.priority,
+        status: ticket.status,
+        phase: "act",
+        label: "🎫 Bilet Otomatik Olarak Ekrana Getirildi"
       }
     ]
   end
@@ -232,30 +264,30 @@ class PageAgentService
                      "- **#{r[:document_title]}** [#{r[:category] || 'runbook'}]: _\"#{r[:quote].to_s.truncate(130)}\"_"
                    end.join("\n")
                  else
-                   "_No matching runbooks found in Ragie knowledge base._"
+                   "_Eşleşen güvenlik prosedürü / runbook bulunamadı._"
                  end
 
     <<~REPORT
       ## 🤖 Sentriq Page-Agent Investigation Report (Zero Human Touch)
 
-      - **Agent Paradigm:** In-Page GUI Agent (`#{AGENT_NAME}`)
-      - **LLM Reasoning:** `#{active_provider_name}`
-      - **RAG Engine:** `#{ragie_provider == 'ragie_cloud' ? 'Ragie.ai Cloud Managed RAG' : 'Ragie Managed RAG (Local Fallback)'}`
-      - **Triggered Command:** _"#{@instruction}"_
-      - **Target Endpoint:** `#{detection&.hostname || 'Workspace Environment'}`
-      - **Assigned Priority:** `#{ticket.priority.upcase}`
-      - **AI Confidence Score:** `#{conf_pct}%`
+      - **Sistem Bileşeni:** Sentriq Otonom SOC Ajanı (`#{AGENT_NAME}`)
+      - **Akıl Yürütme Motoru:** `#{active_provider_name}`
+      - **Güvenlik Bilgi Tabanı:** `#{ragie_provider == 'ragie_cloud' ? 'Kurumsal Güvenlik Runbook Deposu (Canlı Bulut)' : 'Dahili Güvenlik Runbook Deposu (Yerel)'}`
+      - **Tetiklenen Talimat:** _"#{@instruction}"_
+      - **Hedef Sunucu / Uç Nokta:** `#{detection&.hostname || 'SOC Çalışma Alanı'}`
+      - **Öncelik Derecesi:** `#{ticket.priority.upcase}`
+      - **Yapay Zekâ Güven Skoru:** `%#{conf_pct}`
 
-      ### 1. Page Observation & Context Summary
+      ### 1. Sayfa ve Tehdit Bağlam Özeti
       #{analysis['rationale']}
 
-      ### 2. Ragie RAG Knowledge Runbooks Cited
+      ### 2. Başvurulan Güvenlik Prosedürleri & Runbook'lar
       #{cited_docs}
 
-      ### 3. Containment & Resolution Actions Executed
-      - **Action Executed:** `#{analysis['recommended_action']}`
-      - **Autonomous Status:** Ticket marked **RESOLVED** with zero human clicks or manual form entry.
-      - **Human Intervention Attestation:** 0% (Fully Autonomous Page-Agent Execution).
+      ### 3. Gerçekleştirilen Müdahale ve İzolasyon Aksiyonları
+      - **Alınan Aksiyon:** `#{analysis['recommended_action']}`
+      - **Müdahale Durumu:** Bilet insan müdahalesine gerek kalmaksızın **ÇÖZÜLDÜ (RESOLVED)** olarak kapatıldı ve sistem karantinası uygulandı.
+      - **İnsan Müdahalesi Oranı:** %0 (Tam Otonom Müdahale & Zero Human Touch).
     REPORT
   end
 

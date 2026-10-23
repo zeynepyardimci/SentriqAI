@@ -17,13 +17,42 @@ class ContextualAnalysisEngine
 
     draft = generate_draft_response(classification, source_refs)
 
+    matched_runbook = if source_refs.any?
+                        source_refs.first[:document_title]
+                      else
+                        "No matching runbook found in knowledge base"
+                      end
+
+    concrete_evidence = if evidence_refs.any?
+                          evidence_refs.map { |e| "[#{e[:evidence_type]}] #{e[:description]}" }
+                        elsif @detection
+                          [
+                            "Process: #{@detection.process_name || 'N/A'} (PID: #{@detection.process_id || 'N/A'})",
+                            "Command Line: #{@detection.command_line || 'N/A'}",
+                            "Host: #{@detection.hostname}",
+                            "Parent Process: #{@detection.parent_process_name || 'N/A'}"
+                          ]
+                        else
+                          ["Ticket Title: #{@ticket.title}", "Telemetry excerpt: #{@ticket.description.to_s.truncate(150)}"]
+                        end
+
     {
+      # Challenge Standard Keys
+      severity: classification[:priority],
+      confidence: classification[:confidence],
+      confidence_note: "Model heuristic confidence score; not an actuarial probability.",
+      classification: classification[:intent],
+      evidence: concrete_evidence,
+      reasoning: classification[:rationale],
+      matched_runbook: matched_runbook,
+      recommended_action: classification[:recommended_action],
+      requires_human_approval: classification[:requires_human_review],
+
+      # Backward-compatible keys
       intent: classification[:intent],
       priority: classification[:priority],
-      recommended_action: classification[:recommended_action],
       draft_response: draft,
       rationale: classification[:rationale],
-      confidence: classification[:confidence],
       evidence_refs: evidence_refs,
       source_refs: source_refs,
       requires_human_review: classification[:requires_human_review],
@@ -63,10 +92,10 @@ class ContextualAnalysisEngine
 
     # Contextual check 3: Active Attack / Living off the Land Execution
     if @detection.present? || active_attack_indicators?(text)
-      det_sev = @detection&.severity || "high"
+      det_sev = (@ticket.priority == "critical" || @detection&.severity == "critical") ? "critical" : "high"
       return {
         intent: "active_threat_containment",
-        priority: det_sev == "critical" ? "critical" : "high",
+        priority: det_sev,
         recommended_action: "Perform host network containment and inspect parent-child process telemetry",
         rationale: "Aktif bir uç nokta tespiti veya şüpheli ikili/komut satırı yürütmesi tespit edildi. Sistem bütünlüğünü korumak için Seviye 2 analist doğrulaması gereklidir.",
         confidence: 88,
