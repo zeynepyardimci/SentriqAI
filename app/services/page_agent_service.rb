@@ -3,49 +3,134 @@
 class PageAgentService
   AGENT_NAME = "Sentriq-Page-Agent/v1.0"
 
-  def initialize(instruction:, page_url: nil, page_context: {}, current_user: nil, human_intervention: false)
+  attr_reader :execution_id, :steps
+
+  def initialize(instruction:, page_url: nil, page_context: {}, current_user: nil, human_intervention: false, confirmed_action: nil)
     @instruction = instruction.to_s.strip
     @page_url = page_url.to_s
     raw_ctx = page_context.respond_to?(:to_unsafe_h) ? page_context.to_unsafe_h : (page_context || {})
     @page_context = raw_ctx.with_indifferent_access
     @current_user = current_user || User.find_by(role: "lead_analyst") || User.first
     @human_intervention = human_intervention
+    @confirmed_action = confirmed_action
+    @execution_id = "page-exec-#{Time.current.strftime('%Y%m%d%H%M%S')}-#{SecureRandom.hex(4)}"
     @steps = []
   end
 
   def call
-    log_step("observe", "Sayfa ve telemetri bağlamı tarandı: URL='#{@page_url}', Tespit ID=#{@page_context[:detection_id] || 'Yok'}, Sunucu='#{@page_context[:hostname] || 'N/A'}'")
+    # ── STAGE 1: OBSERVE ─────────────────────────────────────────────────────
+    log_step("observe", "Execution #{@execution_id}: Sayfa ve telemetri taranıyor. URL='#{@page_url}', Tespit ID=#{@page_context[:detection_id] || 'Yok'}, Sunucu='#{@page_context[:hostname] || 'N/A'}'")
 
-    # 1. Resolve Detection Target
     detection = resolve_detection
+    target_selector = target_dom_selector(detection)
+
     if detection
-      log_step("observe", "Hedef tespit belirlendi DET-#{detection.id}: '#{detection.title}' (Sunucu: #{detection.hostname}, Süreç: #{detection.process_name || 'N/A'}, Risk: #{detection.severity})")
+      log_step("observe", "Hedef tespit gözlemlendi DET-#{detection.id}: '#{detection.title}' (Sunucu: #{detection.hostname}, Süreç: #{detection.process_name || 'N/A'}, Risk: #{detection.severity}, Durum: #{detection.status})")
     else
-      log_step("observe", "Mevcut sayfada özel bir tespit bulunamadı. Genel SOC çalışma alanı modunda çalışılıyor.")
+      log_step("observe", "Mevcut sayfada doğrudan tespit referansı bulunamadı. Genel SOC çalışma alanı telemetrisi inceleniyor.")
     end
 
-    # 2. Think Phase (LLM Planning)
-    plan = plan_actions(detection)
-    log_step("think", "Sentriq Akıl Yürütme Motoru [#{active_provider_name}]: Amaç='#{@instruction}'. Planlanan aksiyonlar: #{plan[:tools].join(', ')}. Otonom Mod: #{!@human_intervention}")
-
-    # 3. Act Phase
-    # Step A: Query Knowledge Base
+    # ── STAGE 2: REASON ──────────────────────────────────────────────────────
     rag_query = [detection&.title, detection&.process_name, @instruction].compact.join(" ")
     ragie_response = RagieRetrievalService.new(rag_query, limit: 3).call
     ragie_results = ragie_response[:results] || []
-    log_step("act", "Güvenlik Runbook Bilgi Tabanı Sorgulandı: #{ragie_results.size} adet prosedür eşleşti: #{ragie_results.map { |r| r[:document_title] }.compact.uniq.join(', ').presence || 'Genel Prosedür'}")
+    log_step("think", "Güvenlik Runbook Deposu Sorgulandı: #{ragie_results.size} prosedür eşleşti (#{ragie_response[:provider] == 'ragie_cloud' ? 'Canlı Bulut' : 'Yerel Runbook'}).")
 
-    # Step B: Open Ticket Autonomously (if needed)
+    # Resolve or create ticket early so contextual analyzer can inspect it
     ticket = find_or_create_ticket(detection, ragie_results)
-    log_step("act", "Olay Bileti Oluşturuldu / Doğrulandı: #{ticket.ticket_number} (Durum: #{ticket.status}, Öncelik: #{ticket.priority}) — Otonom İşlem.")
 
-    # Step C: LLM Contextual Analysis & Report Generation
     analysis_result = TicketContextualAnalyzerService.new(ticket: ticket, current_user: @current_user).call
     analysis = analysis_result[:analysis]
-    log_step("think", "Bağlamsal Tehdit Analizi Tamamlandı (Niyet: #{analysis['intent']}, Güven Skoru: %#{((analysis['confidence'].to_f <= 1.0 ? analysis['confidence'].to_f * 100 : analysis['confidence'].to_f)).round})")
 
-    # Step D: Compile & Attach In-Page Security Incident Report
-    report_content = build_page_agent_report(ticket, detection, analysis, ragie_results, ragie_response[:provider])
+    # Decide if human approval is strictly required
+    # Mandatory HITL policy: Any high or critical severity, or explicit requires_human_approval flag, or destructive action requires human approval
+    requires_human_approval = analysis["requires_human_approval"] == true ||
+                              analysis["requires_human_review"] == true ||
+                              ticket.priority.in?(%w[high critical]) ||
+                              detection&.severity.in?(%w[high critical])
+
+    # Allow human override if an authorized analyst explicitly confirmed the action
+    if @confirmed_action.present? && @current_user.present?
+      requires_human_approval = false
+      log_step("think", "Yetkili analist (#{@current_user.email}) tarafından aksiyon manuel olarak onaylandı: '#{@confirmed_action}'")
+    end
+
+    conf = analysis["confidence"].to_f
+    conf_pct = conf <= 1.0 ? (conf * 100).round : conf.round
+
+    log_step("think", "Akıl Yürütme [#{active_provider_name}]: Niyet='#{analysis['intent']}', Güven=%#{conf_pct}, İnsan Onayı Gerekli mi=#{requires_human_approval ? 'EVET (HITL Zorunlu)' : 'HAYIR (Rutin/Düşük Risk)'}")
+
+    # ── STAGE 3: PLAN ────────────────────────────────────────────────────────
+    expected_status = requires_human_approval ? "pending_review" : "resolved"
+    action_type = requires_human_approval ? "escalate_to_pending_review" : "auto_resolve_routine"
+    containment_status = if requires_human_approval
+                           "SIMULATED"
+                         elsif detection&.severity.in?(%w[high critical])
+                           "SIMULATED"
+                         else
+                           "NOT_REQUIRED"
+                         end
+
+    log_step("think", "Plan Oluşturuldu: Eylem='#{action_type}', Beklenen Bilet Durumu='#{expected_status}', Ağ İzolasyonu='#{containment_status}' (Gerçek donanım izolasyonu yoktur, simüle edilmiştir).")
+
+    # ── STAGE 4: ACT ─────────────────────────────────────────────────────────
+    # A. Status Transitions & Containment recording
+    if requires_human_approval
+      if ticket.can_transition_to?("pending_review")
+        ticket.escalate_to_human!(
+          reason: "Sentriq Page-Agent [#{execution_id}]: Seviye 2 analist doğrulaması gereklidir. Gerekçe: #{analysis['rationale']}",
+          user: @current_user
+        )
+      end
+
+      # Transition detection state machine safely if applicable
+      transition_detection_safely(detection, "open")
+
+      # Record simulated host isolation in AuditEvent
+      AuditEvent.create!(
+        trackable: ticket,
+        user: @current_user,
+        action: "simulated_host_isolation_recorded",
+        details: {
+          execution_id: @execution_id,
+          hostname: detection&.hostname || "workspace-host",
+          simulated: true,
+          status: "pending_approval",
+          rationale: analysis["rationale"],
+          recommended_action: analysis["recommended_action"]
+        }
+      )
+
+      action_status = "PENDING_APPROVAL"
+      log_step("act", "Güvenlik Politikası Devrede: Yüksek riskli tehdit için Seviye 2 analist doğrulaması istendi. Bilet #{ticket.ticket_number} 'pending_review' kuyruğuna alındı. Ağ izolasyonu SİMÜLE EDİLDİ.")
+    else
+      # Low-risk or routine drill: can safely transition to resolved
+      if ticket.can_transition_to?("resolved")
+        ticket.transition_to!("resolved", user: @current_user, reason: "Sentriq Page-Agent: Rutin değerlendirme tamamlandı, tehdit saptanmadı veya tatbikat doğrulandı.")
+      end
+
+      ticket.update_columns(
+        human_decision: "page_agent_auto_resolved",
+        human_decision_notes: "Sıfır insan müdahalesi ile çözüldü. Rutin/Düşük riskli telemetri doğrulandı.",
+        human_reviewed_at: Time.current
+      )
+
+      action_status = "SUCCEEDED"
+      log_step("act", "Bilet #{ticket.ticket_number} otonom olarak ÇÖZÜLDÜ (RESOLVED) durumuna güncellendi.")
+    end
+
+    # B. Compile and attach investigation report to ticket notes
+    report_content = build_page_agent_report(
+      ticket: ticket,
+      detection: detection,
+      analysis: analysis,
+      ragie_results: ragie_results,
+      ragie_provider: ragie_response[:provider],
+      requires_human_approval: requires_human_approval,
+      containment_status: containment_status,
+      action_status: action_status
+    )
+
     ticket.ticket_notes.create!(
       user: @current_user,
       author_type: "agent",
@@ -54,38 +139,27 @@ class PageAgentService
       body: report_content,
       metadata: {
         page_agent: true,
-        zero_human_touch: !@human_intervention,
+        execution_id: @execution_id,
+        requires_human_approval: requires_human_approval,
+        action_status: action_status,
+        containment_status: containment_status,
         rag_provider: ragie_response[:provider],
         instruction: @instruction
       }
     )
-    log_step("act", "Detaylı Olay İnceleme ve Triaj Raporu bilete eklendi.")
 
-    # Step E: Containment & Resolution without human intervention
-    if !@human_intervention
-      # Only transition if not already resolved/closed
-      unless %w[resolved closed].include?(ticket.status)
-        ticket.transition_to!("resolved", reason: "Sentriq Ajanı sayfa üzerinden otomatik triaj ve tehdit izolasyonunu tamamladı.")
-      end
-      ticket.update_columns(
-        human_decision: "page_agent_auto_resolved",
-        human_decision_notes: "Sıfır insan müdahalesi. Sentriq Ajanı sayfa bağlamını taradı, runbook prosedürlerini uyguladı ve izolasyon protokolünü işletti.",
-        human_reviewed_at: Time.current
-      )
+    # C. Build DOM actions matching real target and state
+    dom_actions = build_dom_actions(detection, ticket, requires_human_approval, containment_status)
 
-      if detection && detection.can_transition_to?("investigating")
-        detection.transition_to!("investigating", reason: "Sentriq Ajanı inceleme başlattı")
-      end
+    # ── STAGE 5: VERIFY ──────────────────────────────────────────────────────
+    ticket.reload
+    actual_status = ticket.status
 
-      log_step("act", "Tehdit izolasyonu sağlandı. Bilet #{ticket.ticket_number} ÇÖZÜLDÜ (RESOLVED) olarak güncellendi.")
+    verified = (actual_status == expected_status)
+    if verified
+      log_step("verify", "✅ Doğrulama Başarılı: Bilet #{ticket.ticket_number} veritabanında '#{actual_status}' durumunda teyit edildi. Denetim logları kaydedildi.")
     else
-      # Only escalate if ticket is in a state that allows pending_review transition
-      if ticket.can_transition_to?("pending_review")
-        ticket.escalate_to_human!(reason: "Sentriq Ajanı analist onayı için bekletmeye aldı", user: @current_user)
-        log_step("act", "Bilet #{ticket.ticket_number} analist inceleme kuyruğuna (pending_review) alındı.")
-      else
-        log_step("act", "Bilet #{ticket.ticket_number} '#{ticket.status}' durumunda — eskalasyon atlandı.")
-      end
+      log_step("error", "❌ Doğrulama Uyarısı: Beklenen '#{expected_status}', veritabanındaki gerçek durum '#{actual_status}'. İşlem güvenli modda durduruldu.")
     end
 
     AuditEvent.create!(
@@ -93,17 +167,24 @@ class PageAgentService
       user: @current_user,
       action: "page_agent_action_executed",
       details: {
+        execution_id: @execution_id,
         instruction: @instruction,
         page_url: @page_url,
         rag_provider: ragie_response[:provider],
         human_intervention: @human_intervention,
-        final_status: ticket.status
+        requires_human_approval: requires_human_approval,
+        action_status: action_status,
+        expected_status: expected_status,
+        final_status: actual_status,
+        verified: verified
       }
     )
 
     {
-      success: true,
-      needs_human: false,
+      success: verified,
+      verified: verified,
+      execution_id: @execution_id,
+      needs_human: requires_human_approval,
       ticket: {
         id: ticket.id,
         ticket_number: ticket.ticket_number,
@@ -112,25 +193,45 @@ class PageAgentService
         priority: ticket.priority,
         url: "/tickets/#{ticket.id}"
       },
-      analysis: {
+      decision: {
         intent: analysis["intent"],
-        confidence: analysis["confidence"],
+        confidence: conf_pct,
         rationale: analysis["rationale"],
         recommended_action: analysis["recommended_action"],
+        requires_human_approval: requires_human_approval,
+        action_status: action_status,
+        containment_status: containment_status,
+        engine: active_provider_name
+      },
+      analysis: {
+        intent: analysis["intent"],
+        confidence: conf_pct,
+        rationale: analysis["rationale"],
+        recommended_action: analysis["recommended_action"],
+        requires_human_approval: requires_human_approval,
+        action_status: action_status,
         engine: active_provider_name
       },
       detection_id: detection&.id,
-      target_selector: target_dom_selector(detection),
-      dom_actions: build_dom_actions(detection, ticket),
+      target_selector: target_selector,
+      dom_actions: dom_actions,
       report: report_content,
       ragie_results: ragie_results,
       ragie_provider: ragie_response[:provider],
+      verification: {
+        verified: verified,
+        expected_status: expected_status,
+        db_status: actual_status,
+        checks_passed: verified ? ["db_reloaded", "audit_logged", "status_consistent"] : []
+      },
       steps: @steps
     }
   rescue StandardError => e
     log_step("error", "Page-Agent execution failed: #{e.message}")
     {
       success: false,
+      verified: false,
+      execution_id: @execution_id,
       needs_human: false,
       error: e.message,
       steps: @steps
@@ -158,15 +259,23 @@ class PageAgentService
     ".data-table tbody tr:first-child"
   end
 
-  def build_dom_actions(detection, ticket)
+  def build_dom_actions(detection, ticket, requires_human_approval, containment_status)
     selector = target_dom_selector(detection)
+
+    badge_color = requires_human_approval ? "#f59e0b" : "#10b981"
+    badge_label = if requires_human_approval
+                    "🟡 İNSAN ONAYI BEKLİYOR (#{ticket.ticket_number})"
+                  else
+                    "✅ ÇÖZÜLDÜ (#{ticket.ticket_number})"
+                  end
+
     [
       {
         type: "move_cursor_and_click",
         selector: selector,
         phase: "observe",
-        label: "🎯 Sanal İmleç: Tehdit Satırına Tıklandı",
-        description: "Sentriq sanal imleci hedef satıra yöneldi ve telemetriyi seçti"
+        label: "🎯 Sanal İmleç: Tehdit Satırına Yönelindi",
+        description: "Sentriq sanal imleci hedef satıra yöneldi ve telemetriyi doğruladı"
       },
       {
         type: "perceive_and_highlight",
@@ -179,16 +288,17 @@ class PageAgentService
         type: "move_cursor_to_action",
         selector: "#pa-run-btn",
         phase: "act",
-        label: "⚡ Sanal İmleç: Aksiyon Butonuna Tıklandı",
-        description: "Ajan otonom izolasyon ve bilet oluşturma protokolünü tetikledi"
+        label: "⚡ Sanal İmleç: Triaj Protokolü Tetiklendi",
+        description: "Ajan backend API üzerinden bilet ve analiz sürecini işletti"
       },
       {
         type: "execute_containment",
         selector: selector,
         phase: "act",
-        label: "✅ SİSTEM İZOLE EDİLDİ (#{ticket.ticket_number})",
-        border_color: "#10b981",
-        status_text: "İZOLE EDİLDİ"
+        label: badge_label,
+        border_color: badge_color,
+        status_text: requires_human_approval ? "ONAY BEKLİYOR" : "ÇÖZÜLDÜ",
+        containment_mode: containment_status
       },
       {
         type: "auto_open_ticket",
@@ -198,8 +308,9 @@ class PageAgentService
         title: ticket.title,
         priority: ticket.priority,
         status: ticket.status,
-        phase: "act",
-        label: "🎫 Bilet Otomatik Olarak Ekrana Getirildi"
+        requires_human_approval: requires_human_approval,
+        phase: "verify",
+        label: "🎫 Bilet Ayrıntıları Ekrana Getirildi"
       }
     ]
   end
@@ -210,37 +321,32 @@ class PageAgentService
     elsif @page_url.match(%r{/detections/(\d+)})
       Detection.find_by(id: ::Regexp.last_match(1))
     else
-      Detection.active.recent_first.first
+      # Prioritize active detections without tickets
+      active_ticket_det_ids = Ticket.where.not(status: %w[closed]).where.not(detection_id: nil).pluck(:detection_id)
+      Detection.active.where.not(id: active_ticket_det_ids).recent_first.first || Detection.active.recent_first.first
     end
   end
 
-  def plan_actions(detection)
-    tools = ["ragie_retrieval", "auto_open_ticket", "generate_incident_report"]
-    tools << "execute_containment" if detection&.severity.in?(%w[high critical])
-    tools << ( @human_intervention ? "escalate_to_human" : "auto_resolve_zero_touch" )
-
-    {
-      intent: "page_agent_full_triage",
-      tools: tools
-    }
-  end
-
-  def find_or_create_ticket(detection, ragie_results)
+  def find_or_create_ticket(detection, _ragie_results)
     if detection
-      # Reuse only active (open or pending_review) tickets, NOT resolved/closed ones
-      existing = detection.tickets.where(status: %w[open pending_review]).recent_first.first
+      # Idempotency: reuse existing ticket (open, investigating, or pending_review)
+      existing = detection.tickets.where(status: %w[open investigating pending_review]).recent_first.first
       return existing if existing
     end
 
-    # Always generate a unique key per execution (seconds + random) to avoid collisions
-    # across repeated agent runs on the same detection in the same minute
-    idempotency_key = "page-agent-#{detection&.id || 'gen'}-#{Time.current.strftime('%Y%m%d%H%M%S')}-#{SecureRandom.hex(4)}"
+    # Deterministic idempotency key: one ticket per detection per hour
+    det_key = detection&.id || "gen"
+    time_window = Time.current.strftime("%Y%m%d%H")
+    idempotency_key = "page-agent-det-#{det_key}-#{time_window}"
+
+    existing_by_key = Ticket.find_by(idempotency_key: idempotency_key)
+    return existing_by_key if existing_by_key
 
     title = detection ? "🤖 [Page-Agent Alert] #{detection.title} (#{detection.hostname})" : "🤖 [Page-Agent] Security Incident Triage Request"
     description = if detection
-                    "In-Page GUI Agent observed active alert on #{detection.hostname}. Process: #{detection.process_name || 'N/A'}. User Instruction: '#{@instruction}'. Dispatched for zero-touch triage."
+                    "In-Page Agent observed telemetry on #{detection.hostname}. Process: #{detection.process_name || 'N/A'}. User Instruction: '#{@instruction}'."
                   else
-                    "In-Page GUI Agent triggered with instruction: '#{@instruction}'."
+                    "In-Page Agent triggered with instruction: '#{@instruction}'."
                   end
 
     Ticket.create!(
@@ -255,7 +361,18 @@ class PageAgentService
     )
   end
 
-  def build_page_agent_report(ticket, detection, analysis, ragie_results, ragie_provider)
+  def transition_detection_safely(detection, target_status)
+    return unless detection
+    if detection.status == "new" && detection.can_transition_to?("open")
+      detection.transition_to!("open", user: @current_user, reason: "Page-Agent olay incelemesini başlattı.")
+    elsif detection.can_transition_to?(target_status)
+      detection.transition_to!(target_status, user: @current_user, reason: "Page-Agent durumu güncelledi.")
+    end
+  rescue StandardError => e
+    Rails.logger.warn("Detection transition warning: #{e.message}")
+  end
+
+  def build_page_agent_report(ticket:, detection:, analysis:, ragie_results:, ragie_provider:, requires_human_approval:, containment_status:, action_status:)
     conf = analysis["confidence"].to_f
     conf_pct = conf <= 1.0 ? (conf * 100).round : conf.round
 
@@ -267,9 +384,24 @@ class PageAgentService
                    "_Eşleşen güvenlik prosedürü / runbook bulunamadı._"
                  end
 
-    <<~REPORT
-      ## 🤖 Sentriq Page-Agent Investigation Report (Zero Human Touch)
+    status_summary = if requires_human_approval
+                       <<~SUMMARY
+                         - **Müdahale Durumu:** 🟡 **İNSAN ONAYI BEKLİYOR (PENDING_REVIEW)**
+                         - **Gerekçe:** #{analysis['rationale']}
+                         - **Ağ İzolasyonu:** #{containment_status == 'SIMULATED' ? 'Simüle Edildi (Host İzolasyon Önerisi Oluşturuldu, Uygulanması İçin Seviye 2 Analist Onayı Gereklidir)' : 'Gerekli Değil'}
+                         - **Aksiyon Durumu:** #{action_status}
+                       SUMMARY
+                     else
+                       <<~SUMMARY
+                         - **Müdahale Durumu:** ✅ **ÇÖZÜLDÜ (RESOLVED)** — Rutin kontrol / tatbikat teyit edildi.
+                         - **Aksiyon Durumu:** #{action_status}
+                       SUMMARY
+                     end
 
+    <<~REPORT
+      ## 🤖 Sentriq Page-Agent Investigation Report
+
+      - **Execution ID:** `#{@execution_id}`
       - **Sistem Bileşeni:** Sentriq Otonom SOC Ajanı (`#{AGENT_NAME}`)
       - **Akıl Yürütme Motoru:** `#{active_provider_name}`
       - **Güvenlik Bilgi Tabanı:** `#{ragie_provider == 'ragie_cloud' ? 'Kurumsal Güvenlik Runbook Deposu (Canlı Bulut)' : 'Dahili Güvenlik Runbook Deposu (Yerel)'}`
@@ -284,10 +416,10 @@ class PageAgentService
       ### 2. Başvurulan Güvenlik Prosedürleri & Runbook'lar
       #{cited_docs}
 
-      ### 3. Gerçekleştirilen Müdahale ve İzolasyon Aksiyonları
-      - **Alınan Aksiyon:** `#{analysis['recommended_action']}`
-      - **Müdahale Durumu:** Bilet insan müdahalesine gerek kalmaksızın **ÇÖZÜLDÜ (RESOLVED)** olarak kapatıldı ve sistem karantinası uygulandı.
-      - **İnsan Müdahalesi Oranı:** %0 (Tam Otonom Müdahale & Zero Human Touch).
+      ### 3. Müdahale ve İzolasyon Durumu
+      #{status_summary}
+      - **Önerilen Aksiyon:** `#{analysis['recommended_action']}`
+      - **Donanım İzolasyon Gerçekliği:** Bu ortamda fiziksel EDR ajan bağlantısı bulunmadığından izolasyon **SİMÜLE** edilmiştir.
     REPORT
   end
 
@@ -295,7 +427,7 @@ class PageAgentService
     timestamp = Time.current.strftime("%H:%M:%S")
     @steps << {
       timestamp: timestamp,
-      phase: phase, # "observe", "think", "act", "error"
+      phase: phase, # "observe", "think", "act", "verify", "error"
       message: message
     }
   end

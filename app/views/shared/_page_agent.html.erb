@@ -72,35 +72,58 @@
       <div>
         <div style="display:flex; align-items:center; gap:0.5rem;">
           <span id="pa-modal-ticket-num" style="font-size:1rem; font-weight:800; color:#38bdf8;">SQT-2026-XXXXXX</span>
-          <span id="pa-modal-ticket-status" style="background:#10b981; color:#000; font-size:0.65rem; font-weight:800; padding:0.15rem 0.45rem; border-radius:4px;">RESOLVED</span>
+          <span id="pa-modal-ticket-status" style="background:#f59e0b; color:#000; font-size:0.65rem; font-weight:800; padding:0.15rem 0.5rem; border-radius:4px;">PENDING_REVIEW</span>
           <span id="pa-modal-llm-badge" style="background:rgba(167,139,250,0.2); color:#c084fc; border:1px solid #a855f7; font-size:0.65rem; font-weight:700; padding:0.15rem 0.45rem; border-radius:4px;">⚡ Llama 3.3 70B Canlı</span>
         </div>
-        <div id="pa-modal-ticket-title" style="font-size:0.78rem; color:#cbd5e1; margin-top:0.2rem; font-weight:600;">Güvenlik Alarmı Otomatik Olarak Çözüldü</div>
+        <div id="pa-modal-ticket-title" style="font-size:0.78rem; color:#cbd5e1; margin-top:0.2rem; font-weight:600;">Güvenlik Alarmı İncelendi</div>
       </div>
     </div>
     <button onclick="paCloseTicketModal()" style="background:none; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer; line-height:1;">&times;</button>
   </div>
 
-  <div style="padding: 1.2rem 1.4rem; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:0.9rem; font-size:0.8rem; color:#e2e8f0; line-height:1.5;">
+  <div style="padding: 1.2rem 1.4rem; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:0.85rem; font-size:0.8rem; color:#e2e8f0; line-height:1.5;">
+    <!-- Rationale & Forensic Reasoning -->
     <div style="background:rgba(6,182,212,0.08); border-left:3px solid #06b6d4; padding:0.75rem 1rem; border-radius:4px;">
-      <div style="font-size:0.72rem; color:#38bdf8; font-weight:700; text-transform:uppercase; margin-bottom:0.25rem;">🧠 LLM Olay Analizi & Mantıksal Değerlendirme:</div>
+      <div style="font-size:0.72rem; color:#38bdf8; font-weight:700; text-transform:uppercase; margin-bottom:0.25rem;">🧠 LLM Olay Analizi & Mantıksal Değerlendirme (Reasoning):</div>
       <div id="pa-modal-rationale" style="color:#cbd5e1;">Ajan sayfa telemetrisini ve sistem kayıtlarını analiz etti.</div>
     </div>
 
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
-      <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.65rem 0.85rem;">
+    <!-- Structured Decision Grid -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
+      <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.6rem 0.8rem;">
         <div style="font-size:0.68rem; color:#94a3b8;">Saldırı Türü / Niyet</div>
-        <div id="pa-modal-intent" style="font-weight:700; color:#f87171; margin-top:0.15rem;">Ransomware Activity</div>
+        <div id="pa-modal-intent" style="font-weight:700; color:#f87171; margin-top:0.15rem;">Active Threat Containment</div>
       </div>
-      <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.65rem 0.85rem;">
+      <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.6rem 0.8rem;">
         <div style="font-size:0.68rem; color:#94a3b8;">AI Güven Skoru</div>
-        <div id="pa-modal-confidence" style="font-weight:700; color:#34d399; margin-top:0.15rem;">%96 (Yüksek Güvenilirlik)</div>
+        <div id="pa-modal-confidence" style="font-weight:700; color:#34d399; margin-top:0.15rem;">%88</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.6rem 0.8rem;">
+        <div style="font-size:0.68rem; color:#94a3b8;">Önerilen Eylem</div>
+        <div id="pa-modal-recommended-action" style="font-weight:700; color:#38bdf8; font-size:0.74rem; margin-top:0.15rem;">Host Network Isolation</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.6rem 0.8rem;">
+        <div style="font-size:0.68rem; color:#94a3b8;">Aksiyon Durumu</div>
+        <div id="pa-modal-action-status" style="font-weight:700; color:#f59e0b; margin-top:0.15rem;">PENDING_APPROVAL (SIMULATED)</div>
       </div>
     </div>
 
-    <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:0.75rem 1rem;">
-      <div style="font-size:0.72rem; color:#34d399; font-weight:700; margin-bottom:0.25rem;">✅ Uygulanan Otonom Aksiyon:</div>
-      <div id="pa-modal-action" style="color:#a7f3d0; font-size:0.78rem;">Sistem ağdan izole edildi ve ilişkili süreçler karantinaya alındı.</div>
+    <!-- Human-In-The-Loop & Verification -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
+      <div style="background:rgba(245,158,11,0.07); border:1px solid rgba(245,158,11,0.25); border-radius:8px; padding:0.6rem 0.8rem;">
+        <div style="font-size:0.68rem; color:#f59e0b; font-weight:700;">İnsan Onayı (HITL)</div>
+        <div id="pa-modal-human-approval" style="font-weight:600; color:#fbbf24; font-size:0.75rem; margin-top:0.15rem;">Zorunlu (Seviye 2 Analist)</div>
+      </div>
+      <div style="background:rgba(16,185,129,0.07); border:1px solid rgba(16,185,129,0.25); border-radius:8px; padding:0.6rem 0.8rem;">
+        <div style="font-size:0.68rem; color:#34d399; font-weight:700;">Backend Doğrulama (Verify)</div>
+        <div id="pa-modal-verification" style="font-weight:600; color:#a7f3d0; font-size:0.75rem; margin-top:0.15rem;">✅ DB Durumu & Denetim Teyit Edildi</div>
+      </div>
+    </div>
+
+    <!-- Dynamic Action Box -->
+    <div id="pa-modal-action-box" style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.4); border-radius:8px; padding:0.75rem 1rem;">
+      <div id="pa-modal-action-title" style="font-size:0.72rem; color:#f59e0b; font-weight:700; margin-bottom:0.25rem;">🟡 Müdahale Durumu:</div>
+      <div id="pa-modal-action" style="color:#fde68a; font-size:0.78rem;">Sistem ağ izolasyonu SİMÜLE EDİLDİ. Güvenlik politikası gereği uygulama için insan onayı bekleniyor.</div>
     </div>
   </div>
 
@@ -340,6 +363,8 @@
   let paCurrentTicketUrl = null;
   let paLastTargetSelector = null;
   let paLastTicketData = null;
+  let paLastHandledDetectionId = null;
+  let paLastProcessedAt = 0;
   const PA_POLL_INTERVAL_MS = 60000;
   const PA_BOOT_DELAY_MS   = 2000;
 
@@ -378,6 +403,17 @@
 
   // ── Auto-run / Execution entry point ─────────────────────────────────────
   function paAutoRun(customInstruction) {
+    const isAutoPoll = !customInstruction;
+    const ctx = paGetContext();
+
+    // Prevent duplicate ticket spam for the same detection during automatic background polling
+    if (isAutoPoll && ctx.detection_id && ctx.detection_id === paLastHandledDetectionId && (Date.now() - paLastProcessedAt < 120000)) {
+      paAppendPanelLog("sys", "Tespit DET-" + ctx.detection_id + " zaten işleme alındı (" + (paLastTicketData ? paLastTicketData.ticket.status : 'aktif') + "). Mükerrer bilet açılması engellendi.");
+      clearTimeout(paPollingTimer);
+      paPollingTimer = setTimeout(paAutoRun, PA_POLL_INTERVAL_MS);
+      return;
+    }
+
     const instruction = customInstruction ||
       "Bu sayfadaki aktif güvenlik tespitini incele, uygun runbook prosedürünü eşle, bilet aç ve otonom müdahale raporunu oluştur";
 
@@ -386,8 +422,6 @@
     paRunCount++;
     document.getElementById("pa-run-count").innerText = paRunCount + " otonom inceleme";
     paAppendPanelLog("observe", "Sayfa telemetrisi ve olay bağlamı inceleniyor — Sayfa: " + window.location.pathname);
-
-    const ctx = paGetContext();
 
     fetch("/page_agent/execute", {
       method: "POST",
@@ -462,7 +496,11 @@
       paCurrentTicketUrl = data.ticket.url;
       paLastTargetSelector = data.target_selector;
       paLastTicketData = data;
-      paSetOrbState("done");
+      paLastHandledDetectionId = data.detection_id || null;
+      paLastProcessedAt = Date.now();
+
+      const isPendingReview = data.ticket.status === "pending_review";
+      paSetOrbState(isPendingReview ? "waiting-human" : "done");
 
       // 1. Play Virtual AI Cursor sequence and execute actions
       if (data.dom_actions && data.dom_actions.length) {
@@ -474,20 +512,45 @@
       // 2. Render Result Card inside Panel
       const card = document.getElementById("pa-result-card");
       const desc = document.getElementById("pa-result-desc");
-      desc.innerHTML = "<strong>" + escHtml(data.ticket.ticket_number) + "</strong> — " + escHtml(data.ticket.title) +
-                       "<br><span style='color:#94a3b8; font-size:0.7rem;'>LLM: " + (data.analysis ? data.analysis.engine : "Canlı Motor") + " • Aksiyon: Otomatik İzolasyon (Zero Human Touch)</span>";
+      const tag = document.getElementById("pa-result-tag");
+
+      if (isPendingReview) {
+        tag.style.background = "rgba(245,158,11,0.2)";
+        tag.style.color = "#f59e0b";
+        tag.innerText = "İnsan Onayı Bekliyor";
+        desc.innerHTML = "<strong>" + escHtml(data.ticket.ticket_number) + "</strong> — " + escHtml(data.ticket.title) +
+                         "<br><span style='color:#f59e0b; font-size:0.7rem;'>Durum: PENDING_REVIEW (Seviye 2 Analist Onayı Bekleniyor) • Ağ İzolasyonu: SİMÜLE EDİLDİ</span>";
+      } else {
+        tag.style.background = "rgba(16,185,129,0.2)";
+        tag.style.color = "#34d399";
+        tag.innerText = "Otonom Çözüldü";
+        desc.innerHTML = "<strong>" + escHtml(data.ticket.ticket_number) + "</strong> — " + escHtml(data.ticket.title) +
+                         "<br><span style='color:#34d399; font-size:0.7rem;'>Durum: RESOLVED • Aksiyon: Rutin/Tatbikat Teyit Edildi</span>";
+      }
+
       card.style.display = "block";
       document.getElementById("pa-panel-body").scrollTop = document.getElementById("pa-panel-body").scrollHeight;
 
       // 3. Show Toast Alert
-      paShowToast(
-        "✅ Sentriq: Tehdit İncelendi & Biletlendi",
-        data.ticket.ticket_number + " — Otonom olarak analiz edildi ve karantina uygulandı.",
-        [
-          { label: "Bileti Aç →", onclick: "paOpenLastTicketModal()" },
-          { label: "Sayfada Vurgula", onclick: "paHighlightCurrentTarget()" }
-        ]
-      );
+      if (isPendingReview) {
+        paShowToast(
+          "🟡 Sentriq: Analist Onayı Bekleniyor",
+          data.ticket.ticket_number + " — Yüksek riskli tehdit için izolasyon simüle edildi. Seviye 2 analist doğrulaması bekleniyor.",
+          [
+            { label: "Bileti İncele →", onclick: "paOpenLastTicketModal()" },
+            { label: "Sayfada Vurgula", onclick: "paHighlightCurrentTarget()" }
+          ]
+        );
+      } else {
+        paShowToast(
+          "✅ Sentriq: Rutin Olay Çözüldü",
+          data.ticket.ticket_number + " — Otonom olarak doğrulandı ve kapatıldı.",
+          [
+            { label: "Bileti Aç →", onclick: "paOpenLastTicketModal()" },
+            { label: "Sayfada Vurgula", onclick: "paHighlightCurrentTarget()" }
+          ]
+        );
+      }
 
       // schedule next polling cycle
       clearTimeout(paPollingTimer);
@@ -524,7 +587,9 @@
       setTimeout(function() {
         if (action.type === "move_cursor_and_click") {
           const el = document.querySelector(action.selector);
-          if (el) {
+          const isVisible = el && el.offsetWidth > 0 && el.offsetHeight > 0 && window.getComputedStyle(el).visibility !== "hidden";
+
+          if (el && isVisible) {
             const rect = el.getBoundingClientRect();
             const targetX = rect.left + (rect.width / 2);
             const targetY = rect.top + (rect.height / 2);
@@ -545,6 +610,8 @@
               // Smooth scroll into view
               el.scrollIntoView({ behavior: "smooth", block: "center" });
             }, 850);
+          } else {
+            paAppendPanelLog("observe", "Hedef DOM elementi (" + action.selector + ") sayfada bulunamadı veya gizli. Görsel tıklama atlandı, işlem backend API üzerinden tamamlandı.");
           }
         }
         else if (action.type === "perceive_and_highlight") {
@@ -566,7 +633,8 @@
           const btn = document.getElementById("pa-run-btn");
           if (btn) {
             const rect = btn.getBoundingClientRect();
-            cursorText.innerText = "⚡ İZOLASYON UYGULANIYOR...";
+            const isPending = fullData.ticket && fullData.ticket.status === "pending_review";
+            cursorText.innerText = isPending ? "⚡ TRİAJ İŞLENİYOR..." : "⚡ OTONOM ANALİZ...";
             cursor.style.left = (rect.left + rect.width / 2) + "px";
             cursor.style.top = (rect.top + rect.height / 2) + "px";
 
@@ -586,16 +654,25 @@
           const el = document.querySelector(action.selector);
           if (el) {
             el.classList.remove("pa-sentriq-targeted");
-            el.classList.add("pa-sentriq-resolved");
+            const isPending = fullData.ticket && fullData.ticket.status === "pending_review";
+
+            if (isPending) {
+              el.classList.remove("pa-sentriq-resolved");
+              el.classList.add("pa-sentriq-targeted");
+            } else {
+              el.classList.add("pa-sentriq-resolved");
+            }
 
             const oldBadge = el.querySelector(".pa-floating-badge");
             if (oldBadge) oldBadge.remove();
 
             const badge = document.createElement("div");
             badge.className = "pa-floating-badge";
-            badge.style.background = "#10b981";
+            badge.style.background = isPending ? "#f59e0b" : "#10b981";
             badge.style.color = "#000";
-            badge.innerHTML = "✅ SİSTEM İZOLE EDİLDİ (" + fullData.ticket.ticket_number + ")";
+            badge.innerHTML = isPending
+              ? "🟡 İNSAN ONAYI BEKLİYOR (" + fullData.ticket.ticket_number + ")"
+              : "✅ SİSTEM İZOLE EDİLDİ (" + fullData.ticket.ticket_number + ")";
             el.appendChild(badge);
 
             setTimeout(function() {
@@ -618,18 +695,64 @@
   function paOpenTicketModal(fullData) {
     if (!fullData || !fullData.ticket) return;
     const modal = document.getElementById("pa-ticket-modal");
+    const statusEl = document.getElementById("pa-modal-ticket-status");
+    const isPending = fullData.ticket.status === "pending_review";
+
     document.getElementById("pa-modal-ticket-num").innerText = fullData.ticket.ticket_number;
     document.getElementById("pa-modal-ticket-title").innerText = fullData.ticket.title;
-    document.getElementById("pa-modal-ticket-status").innerText = fullData.ticket.status.toUpperCase();
 
-    if (fullData.analysis) {
-      document.getElementById("pa-modal-rationale").innerText = fullData.analysis.rationale || "Tehdit analizi tamamlandı.";
-      document.getElementById("pa-modal-intent").innerText = fullData.analysis.intent || "Güvenlik İhlali Tespiti";
-      const conf = parseFloat(fullData.analysis.confidence || 0.95);
-      const confPct = conf <= 1 ? Math.round(conf * 100) : Math.round(conf);
-      document.getElementById("pa-modal-confidence").innerText = "%" + confPct + " (Yüksek Güvenilirlik)";
-      document.getElementById("pa-modal-action").innerText = fullData.analysis.recommended_action || "Otonom izolasyon ve karantina uygulandı.";
-      document.getElementById("pa-modal-llm-badge").innerText = fullData.analysis.engine ? ("⚡ " + fullData.analysis.engine) : "⚡ Canlı LLM Motoru";
+    if (isPending) {
+      statusEl.innerText = "PENDING_REVIEW (İNSAN ONAYI BEKLİYOR)";
+      statusEl.style.background = "#f59e0b";
+      statusEl.style.color = "#000";
+    } else {
+      statusEl.innerText = fullData.ticket.status.toUpperCase();
+      statusEl.style.background = "#10b981";
+      statusEl.style.color = "#000";
+    }
+
+    const dec = fullData.decision || fullData.analysis || {};
+    document.getElementById("pa-modal-rationale").innerText = dec.rationale || "Tehdit analizi tamamlandı.";
+    document.getElementById("pa-modal-intent").innerText = dec.intent || "Güvenlik İhlali Tespiti";
+
+    const conf = parseFloat(dec.confidence || 88);
+    const confPct = conf <= 1 ? Math.round(conf * 100) : Math.round(conf);
+    document.getElementById("pa-modal-confidence").innerText = "%" + confPct;
+
+    document.getElementById("pa-modal-recommended-action").innerText = dec.recommended_action || "Host Network Isolation";
+
+    const actionStatusEl = document.getElementById("pa-modal-action-status");
+    actionStatusEl.innerText = dec.action_status || (isPending ? "PENDING_APPROVAL (SIMULATED)" : "SUCCEEDED");
+    actionStatusEl.style.color = isPending ? "#f59e0b" : "#34d399";
+
+    const humanApprEl = document.getElementById("pa-modal-human-approval");
+    humanApprEl.innerText = dec.requires_human_approval ? "Zorunlu (Seviye 2 Analist Onayı)" : "Gerekli Değil (Rutin Tatbikat)";
+    humanApprEl.style.color = dec.requires_human_approval ? "#f59e0b" : "#34d399";
+
+    const verifyEl = document.getElementById("pa-modal-verification");
+    verifyEl.innerText = (fullData.verification && fullData.verification.verified) ? "✅ DB & Denetim Teyit Edildi" : "⚠️ Doğrulama Uyarısı";
+
+    document.getElementById("pa-modal-llm-badge").innerText = dec.engine ? ("⚡ " + dec.engine) : "⚡ Canlı LLM Motoru";
+
+    // Dynamic Action Box
+    const actionBox = document.getElementById("pa-modal-action-box");
+    const actionTitle = document.getElementById("pa-modal-action-title");
+    const actionText = document.getElementById("pa-modal-action");
+
+    if (isPending) {
+      actionBox.style.background = "rgba(245, 158, 11, 0.1)";
+      actionBox.style.border = "1px solid rgba(245, 158, 11, 0.4)";
+      actionTitle.style.color = "#f59e0b";
+      actionTitle.innerHTML = "🟡 Müdahale Durumu: İnsan Onayı Bekliyor";
+      actionText.style.color = "#fde68a";
+      actionText.innerText = "Sistem ağ izolasyonu SİMÜLE EDİLDİ (Host İzolasyon Önerisi). Yüksek riskli tehdit için Seviye 2 analist doğrulaması zorunludur.";
+    } else {
+      actionBox.style.background = "rgba(16, 185, 129, 0.1)";
+      actionBox.style.border = "1px solid rgba(16, 185, 129, 0.4)";
+      actionTitle.style.color = "#34d399";
+      actionTitle.innerHTML = "✅ Müdahale Durumu: Çözüldü";
+      actionText.style.color = "#a7f3d0";
+      actionText.innerText = "Rutin tatbikat veya düşük riskli olay doğrulanarak bilet kapatıldı.";
     }
 
     document.getElementById("pa-modal-open-link").href = fullData.ticket.url;
@@ -659,18 +782,30 @@
     const tbody = document.querySelector(".data-table tbody");
     if (!tbody || !window.location.pathname.startsWith("/tickets")) return;
 
-    // Check if row already exists
-    if (document.getElementById("ticket-row-" + ticket.id)) return;
+    const isPending = ticket.status === "pending_review";
+    const statusBg = isPending ? "rgba(245,158,11,0.2)" : "rgba(16,185,129,0.2)";
+    const statusColor = isPending ? "#f59e0b" : "#34d399";
+    const statusLabel = isPending ? "PENDING_REVIEW" : "RESOLVED";
+
+    // If row already exists, update its status cell rather than creating a duplicate row
+    const existing = document.getElementById("ticket-row-" + ticket.id);
+    if (existing) {
+      const statusCell = existing.querySelector("td:nth-child(4)");
+      if (statusCell) {
+        statusCell.innerHTML = `<span style="background:${statusBg}; color:${statusColor}; padding:0.2rem 0.5rem; border-radius:4px; font-size:0.7rem; font-weight:700;">${escHtml(statusLabel)}</span>`;
+      }
+      return;
+    }
 
     const tr = document.createElement("tr");
     tr.id = "ticket-row-" + ticket.id;
-    tr.className = "pa-sentriq-resolved";
-    tr.style.background = "rgba(16,185,129,0.12)";
+    tr.className = isPending ? "pa-sentriq-targeted" : "pa-sentriq-resolved";
+    tr.style.background = isPending ? "rgba(245,158,11,0.12)" : "rgba(16,185,129,0.12)";
     tr.innerHTML = `
       <td style="padding:0.75rem 1rem; font-weight:700;"><a href="${ticket.url}" style="color:#38bdf8; text-decoration:none;">${escHtml(ticket.ticket_number)}</a></td>
       <td style="padding:0.75rem 1rem;">${escHtml(ticket.title)}</td>
       <td style="padding:0.75rem 1rem;"><span style="background:rgba(239,68,68,0.2); color:#f87171; padding:0.2rem 0.5rem; border-radius:4px; font-size:0.7rem; font-weight:700;">${escHtml(ticket.priority.toUpperCase())}</span></td>
-      <td style="padding:0.75rem 1rem;"><span style="background:rgba(16,185,129,0.2); color:#34d399; padding:0.2rem 0.5rem; border-radius:4px; font-size:0.7rem; font-weight:700;">${escHtml(ticket.status.toUpperCase())}</span></td>
+      <td style="padding:0.75rem 1rem;"><span style="background:${statusBg}; color:${statusColor}; padding:0.2rem 0.5rem; border-radius:4px; font-size:0.7rem; font-weight:700;">${escHtml(statusLabel)}</span></td>
       <td style="padding:0.75rem 1rem; color:#94a3b8; font-size:0.75rem;">Sentriq AI (Otonom)</td>
       <td style="padding:0.75rem 1rem; font-size:0.75rem; color:#64748b;">Şimdi</td>
       <td style="padding:0.75rem 1rem;"><a href="${ticket.url}" style="background:#06b6d4; color:#000; font-size:0.7rem; font-weight:700; padding:0.25rem 0.6rem; border-radius:4px; text-decoration:none;">İncele →</a></td>
@@ -679,6 +814,7 @@
 
     setTimeout(function() {
       tr.classList.remove("pa-sentriq-resolved");
+      tr.classList.remove("pa-sentriq-targeted");
     }, 6000);
   }
 

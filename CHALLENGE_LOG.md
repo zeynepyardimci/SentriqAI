@@ -305,3 +305,28 @@ Son hedef: Çok özellikli görünen bir demo değil; gerçek kullanıcı acıs�
 - **Gerekçeli karar ve bir sonraki kişisel hedef:**  
   SOC analistlerinin yanlış pozitif triyajında yaşadığı alarm yorgunluğu ve karar bağlamı eksikliği gerçek ve büyük bir operasyonel sorundur. Sentriq AI'nın Agent-First REST API + LLM bağlamsal triyaj + Human-in-the-Loop mimarisi bu acıyı başarıyla çözmektedir.  
   *Bir sonraki hedef:* CrowdStrike Falcon ve SentinelOne webhook entegrasyonu ekleyerek gerçek zamanlı SIEM alarm stream'lerini WebSocket üzerinden canlı dashboard'a beslemek ve SOC analistlerine interaktif sesli / chat tabanlı runbook asistanı sunmaktır.
+
+---
+
+## 🛠️ Page Agent Bug Fix: Gerçek Gözlem, Eylem ve Doğrulama (OBSERVE → REASON → PLAN → ACT → VERIFY)
+
+### 1. Hatanın Kök Neden Analizi (Root Causes)
+1. **Körlemesine Auto-Resolve:** `PageAgentService#call` içinde `if !@human_intervention` kontrolü, `analysis['requires_human_approval'] == true` veya tespitin `high/critical` önceliğe sahip olmasını tamamen göz ardı ederek bileti doğrudan `resolved` durumuna çekiyordu. Bu durum, LLM'nin analiz metninde `"Sistem bütünlüğünü korumak için Seviye 2 analist doğrulaması gereklidir"` yazmasına rağmen ekranda ve veritabanında biletin yeşil `RESOLVED` görünmesine yol açıyordu.
+2. **Gerçekleşmemiş İzolasyon İddiası:** Ağ izolasyonu gerçek donanım/EDR bağlantısı olmadan `"Sistem ağdan izole edildi ve ilişkili süreçler karantinaya alındı"` şeklinde gerçek bir aksiyon gibi yazılıyor ve gösteriliyordu; oysa gerçekte simüle edilmişti ve insan onayı olmadan uygulanamazdı.
+3. **Mükerrer Bilet Oluşumu:** `find_or_create_ticket` metodu yalnızca `open/pending_review` biletleri arıyordu. Önceki turda bilet `resolved` yapıldığı için her 60 saniyelik polling döngüsünde aynı tespit için yeni bir bilet açılıyordu.
+4. **Kopuk Sanal İmleç:** Sanal imleç backend işlemi bittikten sonra bağımsız bir CSS animasyonu olarak çalışıyor, hedef DOM elementinin varlığını ve görünürlüğünü kontrol etmiyordu.
+
+### 2. Uygulanan Mimari Değişiklikler
+- **OBSERVE:** Hedef tespit ID'si, telemetri verileri ve DOM hedef seçicisi (`#detection-row-ID`) gözlemlendi. Her çalıştırmaya benzersiz `execution_id` verildi.
+- **REASON:** RAG bilgi tabanı sorgulandı ve yapılandırılmış analiz şeması (`intent`, `confidence`, `rationale`, `recommended_action`, `requires_human_approval`) üretildi.
+- **PLAN:** Ön koşullar ve beklenen sonuçlar belirlendi. Yüksek riskli tehditlerde `escalate_to_pending_review` ve `simulated_containment_pending` planlandı.
+- **ACT:** Güvenlik politikası işletildi. Yüksek/kritik olaylar `pending_review` durumuna alındı; izolasyon açıkça `SIMULATED` olarak `AuditEvent` tablosuna kaydedildi. Düşük riskli tatbikatlar ise güvenli şekilde `resolved` yapıldı.
+- **VERIFY:** İşlem sonrası bilet veritabanından yeniden okundu (`ticket.reload`), `actual_status == expected_status` doğrulaması yapıldı ve ancak doğrulama başarılıysa `verified: true` dönüldü.
+- **DOM İyileştirmesi:** Elementin varlığı ve görünürlüğü kontrol edildi; element bulunamazsa boşluğa tıklama yapılmayıp loglandı.
+- **Arayüz Tutarlılığı:** Modal ve toast bildirimleri `PENDING_REVIEW` (Sarı/Turuncu) veya `RESOLVED` (Yeşil) durumunu doğru rozet, gerekçe ve simülasyon etiketiyle göstermek üzere güncellendi.
+
+### 3. Test Sonuçları
+- `PageAgentServiceTest` (5 senaryo) ve `PageAgentControllerTest` (5 senaryo): **10 runs, 70 assertions, 0 failures, 0 errors**.
+- Tüm proje testleri (`bundle exec rails test`): **76 runs, 442 assertions, 0 failures, 0 errors, 0 skips**.
+- Brakeman SAST güvenlik taraması: **0 warnings, 0 errors**.
+

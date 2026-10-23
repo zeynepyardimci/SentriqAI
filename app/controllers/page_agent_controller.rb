@@ -9,13 +9,15 @@ class PageAgentController < ApplicationController
     page_url = params[:page_url].presence || request.referer || root_path
     page_context = params[:page_context] || {}
     human_intervention = ActiveModel::Type::Boolean.new.cast(params[:human_intervention]) || false
+    confirmed_action = params[:confirmed_action].presence
 
     service = PageAgentService.new(
       instruction: instruction,
       page_url: page_url,
       page_context: page_context,
       current_user: current_user,
-      human_intervention: human_intervention
+      human_intervention: human_intervention,
+      confirmed_action: confirmed_action
     )
 
     result = service.call
