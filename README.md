@@ -223,7 +223,7 @@ Sentriq AI çoklu LLM sağlayıcı mimarisini destekler:
    ruby bin/rails db:seed
    ```
 
-4. **Testleri Çalıştırın (56 test, 295 assertion, 0 hata, 0 başarısızlık):**
+4. **Testleri Çalıştırın (125 test, 687 assertion, 0 hata, 0 başarısızlık):**
    ```bash
    bundle exec rails test
    ```
@@ -280,25 +280,84 @@ curl -X POST http://127.0.0.1:3000/api/v1/tickets \
 
 ---
 
-## 7. Dağıtım (Production Deployment)
+## 7. Dağıtım ve Canlı Demo (Production Deployment)
 
-Uygulama Docker ve Render için tam uyumludur:
-- `Dockerfile`: Multi-stage, jemalloc optimizasyonlu, non-root `rails` kullanıcısı ile çalışır.
-- `render.yaml`: Tek tıkla Render Blueprint ile PostgreSQL ve Web servisi kurar (Sağlık kontrolü: `/up`).
-- `bin/docker-entrypoint`: Otomatik migration ve seed akışı içerir.
-
----
-
-## 8. Bilinen Eksikler ve Yapamadıklarım
-
-- **Canlı Public Bulut URL'si:** Kullanıcı tarafından harici bir Render API anahtarı veya canlı sunucu ortamı atanmadığı için uygulama genel internetteki canlı bir Render URL'si yerine yerel sunucu (`http://127.0.0.1:3000`) ve Docker ortamında uçtan uca doğrulanmıştır. `render.yaml` ve `Dockerfile` üretime hazır teslim edilmiştir.
-- **Canlı LLM Anahtarı:** Ortam değişkenlerinde harici bir `GROQ_API_KEY` veya `OPENAI_API_KEY` tanımlı olmadığı geliştirme anlarında Sentriq Contextual Local Engine devreye girmekte ve arayüzde şeffafça simüle mod etiketi gösterilmektedir.
-- **Gerçek Cihaz İzolasyonu:** Güvenlik ve sistem bütünlüğü kuralları gereği, gerçek endpoint ajanlarına yıkıcı komut gönderilmemekte, insan onayı sonrasında `simulated_host_isolation` aksiyonu kaydedilmektedir.
+Uygulama Docker ve Render bulut platformu ile tam uyumludur:
+- **Canlı Demo URL'si:** [https://sentriq-ai-1wfh.onrender.com/](https://sentriq-ai-1wfh.onrender.com/)
+- **Sağlık Kontrolü (Healthcheck):** [https://sentriq-ai-1wfh.onrender.com/up](https://sentriq-ai-1wfh.onrender.com/up)
+- `Dockerfile`: Multi-stage, jemalloc bellek optimizasyonlu, non-root `rails` kullanıcısı ile çalışır.
+- `render.yaml`: Render Blueprint ile PostgreSQL 16 ve Rails Web servisini tek yapılandırmada ayağa kaldırır.
+- `bin/docker-entrypoint`: Her deploy sonrasında otomatik `db:prepare` ve `db:seed` adımlarını yürütür.
 
 ---
 
-## 9. GitHub Actions Test Durumu
+## 8. Bilinen Sınırlar ve Tasarım Kararları
 
-- CI İş Akışı: `.github/workflows/ci.yml` (Brakeman SAST, RuboCop, Rails Unit/Integration testleri).
-- Yerel Test Başarısı: **56 test, 295 assertion, 0 hata, 0 başarısızlık (%100 Başarı)**.
+- **Canlı Ortam & Render Dağıtımı:** Uygulama Render üzerinde Docker runtime ve Render PostgreSQL altyapısıyla canlıya alınmıştır ([https://sentriq-ai-1wfh.onrender.com/](https://sentriq-ai-1wfh.onrender.com/)). Free plan kapsamında servis boşta kaldığında uyku moduna geçebilir; ilk istekte uyanması 30-45 saniye sürebilir.
+- **Canlı LLM Anahtarı:** Ortam değişkenlerinde harici bir `GROQ_API_KEY`, `OPENAI_API_KEY` veya `GEMINI_API_KEY` tanımlı olmadığında Sentriq Contextual Local Engine devreye girmekte ve arayüzde şeffafça `Contextual Local Engine (Simulated Mode)` etiketi gösterilmektedir.
+- **Gerçek Cihaz İzolasyonu:** Güvenlik ve sistem bütünlüğü kuralları gereği, gerçek endpoint ajanlarına yıkıcı komut gönderilmemekte; insan onayı sonrasında audit loglarına `simulated_host_isolation_executed` aksiyonu kaydedilmektedir.
+
+---
+
+## 9. Test Altyapısı ve Kapsam Analizi
+
+Uygulamanın test altyapısı Rails Minitest çatısı üzerinde kurulmuştur. Toplam **24 test dosyası** üzerinden **125 test (runs)** ve **687 assertion** çalıştırılmakta olup testler **0 hata, 0 başarısızlık (%100 başarı)** ile tamamlanmaktadır.
+
+### 9.1. Test Edilen Katmanlar ve Dosyalar
+
+#### 1. Model Testleri (`test/models/` - 4 Dosya)
+- [`copilot_message_test.rb`](test/models/copilot_message_test.rb): Rol validasyonları (`user`, `assistant`, `system`), oturum bağlamı ve mesaj sıralaması.
+- [`detection_test.rb`](test/models/detection_test.rb): Güvenlik tespitleri model doğrulamaları, severity derecelendirmesi, durum güncellemeleri ve telemetri ilişkileri.
+- [`ticket_test.rb`](test/models/ticket_test.rb): SLA hedef süre hesaplamaları, öncelik validasyonları, varsayılan alan atamaları.
+- [`ticket_state_machine_transition_test.rb`](test/models/ticket_state_machine_transition_test.rb): Bilet durum geçiş makinesi (`open` -> `in_progress` -> `pending_review` -> `resolved` -> `closed`), yetkisiz/geçersiz durum geçişlerinin engellenmesi ve eskalasyon kuralları.
+
+#### 2. Controller ve API Testleri (`test/controllers/` - 6 Dosya)
+- [`tickets_controller_test.rb`](test/controllers/tickets_controller_test.rb): Web arayüzünde bilet listeleme, detay görüntüleme, durum değiştirme ve insan onay butonları.
+- [`detections_controller_test.rb`](test/controllers/detections_controller_test.rb): Telemetri ve tespitlerin listelenmesi ve filtreleme parametreleri.
+- [`copilot_controller_test.rb`](test/controllers/copilot_controller_test.rb): SOC yardımcı analist asistanı sohbet akışı ve mesaj geçmişi yönetimi.
+- [`page_agent_controller_test.rb`](test/controllers/page_agent_controller_test.rb): Sayfa içi bağlamsal asistan (Page Agent) API ve UI etkileşimleri.
+- [`api/v1/tickets_controller_test.rb`](test/controllers/api/v1/tickets_controller_test.rb): REST API v1 uç noktaları:
+  - Token tabanlı yetkilendirme (`Bearer` / `X-Agent-Token`)
+  - `Idempotency-Key` mükerrer istek koruması
+  - `POST /api/v1/tickets/:id/analyze` bağlamsal analiz başlatma
+  - `GET /api/v1/tickets/:id/human_decision` insan kararı sorgulama
+  - Not ekleme ve eskalasyon endpoint'leri
+- [`api/v1/autonomous_agents_controller_test.rb`](test/controllers/api/v1/autonomous_agents_controller_test.rb): Sıfır insan müdahaleli (`/api/v1/agent/autonomous_ingest`) otonom olay alımı ve triyaj akışı.
+
+#### 3. Servis Katmanı Testleri (`test/services/` - 14 Dosya)
+- [`ai_investigation_agent_service_test.rb`](test/services/ai_investigation_agent_service_test.rb): AI tabanlı olay inceleme ve kanıt analizi.
+- [`autonomous_agent_dispatcher_service_test.rb`](test/services/autonomous_agent_dispatcher_service_test.rb): Otonom agent yönlendirici ve görev dağıtımı.
+- [`avatar_conversation_service_test.rb`](test/services/avatar_conversation_service_test.rb): Sesli/avatar analist sohbet servisi.
+- [`deep_investigation_service_test.rb`](test/services/deep_investigation_service_test.rb): Ebeveyn-çocuk işlem ağaçları (process tree) ve derin telemetri korelasyonu.
+- [`investigation_schema_validator_test.rb`](test/services/investigation_schema_validator_test.rb): LLM JSON çıktı şeması doğrulaması ve hatalı JSON yakalama.
+- [`page_agent_service_test.rb`](test/services/page_agent_service_test.rb) & [`page_agent_target_selection_test.rb`](test/services/page_agent_target_selection_test.rb): Sayfa bağlamı analizi ve hedef DOM/UI elementi seçimi.
+- [`ragie_retrieval_service_test.rb`](test/services/ragie_retrieval_service_test.rb): Ragie RAG retrieval entegrasyonu ve yerel bilgi tabanına fallback mekanizması.
+- [`request_human_review_test.rb`](test/services/request_human_review_test.rb): Kritik/yıkıcı aksiyonlarda insan onayı zorunluluğu ve güvenlik kilidi (`pending_review`).
+- [`search_knowledge_base_service_test.rb`](test/services/search_knowledge_base_service_test.rb): Bilgi tabanı / runbook arama servisi.
+- [`ticket_contextual_analyzer_service_test.rb`](test/services/ticket_contextual_analyzer_service_test.rb): Bağlamsal zeka analizi (rutin tatbikat vs. aktif saldırı ayrımı).
+- [`ticket_modal_and_confidence_test.rb`](test/services/ticket_modal_and_confidence_test.rb) & [`ai/confidence_evaluator_test.rb`](test/services/ai/confidence_evaluator_test.rb): Güven skoru hesaplama, eşik kontrolleri ve sezgisel skorlama.
+- [`ai/orchestrator_test.rb`](test/services/ai/orchestrator_test.rb): Çoklu LLM sağlayıcı orkestrasyonu (Grok, OpenAI, Gemini ve yerel motor fallback'i).
+
+### 9.2. Kapsam Dışı Alanlar (Test Edilmemiş Alanlar)
+
+Dürüstlük ve şeffaflık gereği, aşağıdaki alanların mevcut otomatik test paketinde yer almadığı açıkça belirtilir:
+- **Uçtan Uca Tarayıcı / Sistem Testleri (`test/system/` ve `test/integration/`):** Capybara/Selenium ile gerçek headless browser açılarak yapılan sistem testleri bulunmamaktadır; arayüz etkileşimleri Controller test seviyesinde HTTP istek/yanıt bazında test edilmiştir.
+- **E-Posta Servisleri (`test/mailers/`):** Uygulama e-posta gönderim özelliği içermediğinden mailer testleri boştur.
+- **View Helper Birim Testleri (`test/helpers/`):** Arayüz yardımcı metotları ayrı birim testleri yerine Controller ve View render testleri kapsamında dolaylı olarak çalışmaktadır.
+- **Canlı Harici Ağ Çağrıları:** Test koşumlarında harici üçüncü taraf servislere (OpenAI, xAI Grok, Ragie) gerçek HTTP istekleri gönderilmemekte; testler kontrollü ortamda mock'lar ve deterministik yerel simülasyon motoru üzerinden yürütülmektedir.
+
+---
+
+## 10. GitHub Actions CI ve Doğrulama Durumu
+
+- **CI İş Akışı Dosyası:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+- **CI Adımları:**
+  1. `scan_ruby`: Brakeman SAST güvenlik taraması (`bin/brakeman --no-pager`) ve bağımlılık denetimi (`bin/bundler-audit`).
+  2. `scan_js`: JavaScript bağımlılık güvenlik taraması (`bin/importmap audit`).
+  3. `lint`: RuboCop kod stili ve statik analiz (`bin/rubocop`).
+  4. `test`: PostgreSQL 16 servis konteyneri üzerinde Rails testleri (`bin/rails db:test:prepare test`).
+- **Güncel Test Sonucu:**
+  ```text
+  125 runs, 687 assertions, 0 failures, 0 errors, 0 skips (%100 Başarı)
+  ```
 

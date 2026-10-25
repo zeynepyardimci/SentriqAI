@@ -9,7 +9,7 @@ development:
   host: <%= ENV.fetch("DB_HOST", "127.0.0.1") %>
   username: <%= ENV.fetch("DB_USER", "postgres") %>
   password: <%= ENV.fetch("DB_PASSWORD", "postgres") %>
-  port: <%= ENV.fetch("DB_PORT", 5434) %>
+  port: <%= ENV.fetch("DB_PORT", 5432) %>
 
 test:
   <<: *default
@@ -17,7 +17,7 @@ test:
   host: <%= ENV.fetch("DB_HOST", "127.0.0.1") %>
   username: <%= ENV.fetch("DB_USER", "postgres") %>
   password: <%= ENV.fetch("DB_PASSWORD", "postgres") %>
-  port: <%= ENV.fetch("DB_PORT", 5434) %>
+  port: <%= ENV.fetch("DB_PORT", 5432) %>
 
 production:
   <<: *default
