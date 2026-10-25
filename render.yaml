@@ -12,7 +12,9 @@ services:
       - key: SECRET_KEY_BASE
         sync: false
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: sentriq-postgres
+          property: connectionString
       - key: RAILS_ENV
         value: production
       - key: RAILS_SERVE_STATIC_FILES
@@ -27,3 +29,10 @@ services:
         sync: false
       - key: RAGIE_API_KEY
         sync: false
+
+databases:
+  - name: sentriq-postgres
+    plan: free
+    region: frankfurt
+    databaseName: sentriq_ai_production
+    user: sentriq
