@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby.exe
+#!/usr/bin/env ruby
 APP_PATH = File.expand_path("config/application", Dir.pwd)
 require File.expand_path("config/boot", Dir.pwd)
 require "rails/commands"

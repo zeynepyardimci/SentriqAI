@@ -1,0 +1,13 @@
+# Auto detect text files and ensure LF line endings in the repository
+* text=auto eol=lf
+
+# Shell scripts and binstubs must always use LF
+bin/* text eol=lf
+*.sh text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.gif binary
+*.webp binary
