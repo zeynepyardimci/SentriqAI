@@ -1,11 +1,15 @@
+# frozen_string_literal: true
 # Sentriq AI - Synthetic Security Telemetry Seed Data
 puts "== Seeding Sentriq AI Synthetic Data =="
 
 # 1. Clean previous demo data safely
 AuditEvent.destroy_all
-InvestigationNote.destroy_all
+TicketNote.destroy_all
+CopilotMessage.destroy_all
 SourceReference.destroy_all
+InvestigationNote.destroy_all
 Investigation.destroy_all
+Ticket.destroy_all
 Evidence.destroy_all
 Detection.destroy_all
 KnowledgeChunk.destroy_all
@@ -33,7 +37,7 @@ senior = User.create!(
   role: "senior_analyst",
   demo_token: "demo-senior-token-99"
 )
-puts "-> Created 3 synthetic analyst users (Tokens: demo-analyst-token-01, demo-lead-token-42)"
+puts "-> Created 3 synthetic analyst users (Tokens: demo-analyst-token-01, demo-lead-token-42, demo-senior-token-99)"
 
 # 3. Knowledge Documents (Internal Runbooks & MITRE Techniques)
 doc_ps = KnowledgeDocument.create!(
@@ -229,28 +233,178 @@ det3.evidences.create!([
 
 # Detection 4: Low priority benign admin check
 det4 = Detection.create!(
-  title: "Administrative Privilege Enumeration via whoami",
-  description: "User ran whoami /priv to check token security attributes in workstation shell.",
+  title: "Dünkü Rutin Yedekleme ve Arşiv Tatbikatı Kontrolü",
+  description: "Zamanlanmış acil durum tatbikatı tamamlandı. Rutin PowerShell arşivleme betiği çalıştırıldı.",
   severity: "low",
   status: "open",
-  hostname: "WKSTN-DEV-012.corp.sentriq.internal",
+  hostname: "SRV-BACKUP-02.corp.sentriq.internal",
   ip_address: "10.0.12.12",
-  username: "developer\\alex.k",
-  process_name: "whoami.exe",
-  process_id: 1102,
-  parent_process_name: "cmd.exe",
+  username: "backup_service",
+  process_name: "powershell.exe",
+  process_id: 1840,
+  parent_process_name: "taskeng.exe",
   parent_process_id: 890,
-  command_line: "whoami /priv /fo csv",
-  file_path: "C:\\Windows\\System32\\whoami.exe",
+  command_line: "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Scripts\\backup_drill.ps1",
+  file_path: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
   file_hash: "11223344556677889900aabbccddeeff11223344556677889900aabbccddeeff",
-  triggered_at: 45.minutes.ago,
+  triggered_at: 15.minutes.ago,
   assigned_to: analyst,
   sla_risk: false,
   raw_telemetry: {
     edr_agent_version: "6.4.2-sentriq",
-    mitre_technique: "T1033"
+    mitre_technique: "T1059.001"
   }
 )
 
 puts "-> Created 4 synthetic detections with correlated evidence timelines"
-puts "== Seed complete! Sentriq AI ready for triage and AI investigation =="
+
+# 5. Synthetic Tickets (Crucial for Triage & UI display!)
+ticket1 = Ticket.create!(
+  ticket_number: "TK-2026-001",
+  title: "Kritik İncelenmesi Gereken Olay: Encoded PowerShell Ingress",
+  description: "Microsoft Word (winword.exe) üzerinden tetiklenen gizli PowerShell komutu harici C2 sunucusuna (198.51.100.14) bağlanmayı denedi.",
+  status: "pending_review",
+  priority: "critical",
+  assigned_agent: "Sentriq-Autonomous-SOC-Copilot",
+  detection: det1,
+  user: analyst,
+  context_metadata: {
+    "hostname" => det1.hostname,
+    "ip_address" => det1.ip_address,
+    "username" => det1.username,
+    "process_name" => det1.process_name,
+    "source_edr" => "Sentriq EDR v6.4",
+    "trigger_reason" => "High-confidence LOLBin macro exploitation signature"
+  },
+  llm_analysis: {
+    "confidence_score" => 94,
+    "reasoning" => "Ofis uygulamasının doğrudan gizli parametrelerle PowerShell çalıştırması ve Base64 kodlu WebClient indirmesi kesin siber saldırı göstergesidir.",
+    "mitre_technique" => "T1059.001",
+    "recommended_action" => "Host İzolasyonu & AD Parola Sıfırlama"
+  },
+  agent_mode: "autonomous_agent"
+)
+
+ticket2 = Ticket.create!(
+  ticket_number: "TK-2026-002",
+  title: "LOLBin CertUtil Şüpheli İkili Dosya İndirmesi",
+  description: "Domain Controller (SRV-DC-02) üzerinde CertUtil kullanılarak harici IP'den çalıştırılabilir dosya indirildi.",
+  status: "open",
+  priority: "high",
+  assigned_agent: "Sentriq-Autonomous-SOC-Copilot",
+  detection: det2,
+  user: lead,
+  context_metadata: {
+    "hostname" => det2.hostname,
+    "ip_address" => det2.ip_address,
+    "username" => det2.username
+  },
+  llm_analysis: {
+    "confidence_score" => 88,
+    "reasoning" => "CertUtil -urlcache bayrağının geçici Temp dizinine dosya yazması MITRE T1105 Ingress Tool Transfer prosedürüyle örtüşmektedir."
+  },
+  agent_mode: "autonomous_agent"
+)
+
+ticket3 = Ticket.create!(
+  ticket_number: "TK-2026-003",
+  title: "Gölge Kopyaların Silinmesi Tespiti (Ransomware Hazırlığı)",
+  description: "vssadmin delete shadows komutu ile sistem kurtarma noktaları hedef alındı.",
+  status: "open",
+  priority: "high",
+  assigned_agent: "Sentriq-Autonomous-SOC-Copilot",
+  detection: det3,
+  user: senior,
+  context_metadata: {
+    "hostname" => det3.hostname,
+    "ip_address" => det3.ip_address
+  },
+  llm_analysis: {
+    "confidence_score" => 92,
+    "reasoning" => "Ransomware şifreleme öncesi sistem geri yükleme imhası teşhis edilmiştir."
+  },
+  agent_mode: "autonomous_agent"
+)
+
+ticket4 = Ticket.create!(
+  ticket_number: "TK-2026-004",
+  title: "Rutin Yedekleme Tatbikatı Kontrol Kaydı",
+  description: "Haftalık planlı tatbikat betiğinin çalışması başarıyla doğrulandı.",
+  status: "resolved",
+  priority: "low",
+  assigned_agent: "Sentriq-Auto-Triage",
+  detection: det4,
+  user: analyst,
+  human_reviewer: senior,
+  human_decision: "approved_benign",
+  human_decision_notes: "Planlı tatbikat takvimine uygundur, yanlış alarm kapatıldı.",
+  human_reviewed_at: 10.minutes.ago,
+  context_metadata: {
+    "hostname" => det4.hostname
+  },
+  agent_mode: "autonomous_agent"
+)
+
+puts "-> Created 4 synthetic incident tickets with context and LLM analysis"
+
+# 6. Ticket Notes
+ticket1.ticket_notes.create!([
+  {
+    author_type: "agent",
+    author_name: "Sentriq SOC Autonomous Agent",
+    note_type: "finding",
+    body: "🤖 [OTONOM ANALİZ]: Olay MITRE T1059.001 ile %94 güven puanıyla eşleşti. İlgili runbook: RB-0105. Host izolasyonu tavsiye edildi fakat Güvenlik Politikası gereği 'İnsan Onayı (Human-in-the-Loop)' bekleniyor."
+  },
+  {
+    author_type: "human",
+    author_name: "Marcus Reed",
+    user: analyst,
+    note_type: "comment",
+    body: "Uç noktadaki sarah.connor kullanıcısı ile iletişime geçildi. Şüpheli bir fatura e-postasındaki Word belgesini açtığını bildirdi. Analiz onaylanıyor."
+  }
+])
+
+# 7. Copilot Messages
+CopilotMessage.create!([
+  {
+    detection: det1,
+    ticket: ticket1,
+    user: analyst,
+    role: "avatar",
+    content: "Merhaba Marcus! WKSTN-FIN-089 makinesinde tespit edilen kritik Base64 kodlu PowerShell olayını inceledim. Komut satırı incelendiğinde '198.51.100.14' adresinden zararlı betik indirildiği görülüyor. Bu makineyi hemen ağdan izole etmemi ister misiniz?"
+  },
+  {
+    detection: det1,
+    ticket: ticket1,
+    user: analyst,
+    role: "user",
+    content: "Bu olayda tam olarak hangi kanıtlar var?"
+  },
+  {
+    detection: det1,
+    ticket: ticket1,
+    user: analyst,
+    role: "avatar",
+    content: "Telemetri kayıtlarında 3 somut kanıt mevcut:\n1. winword.exe tarafından saat 10 dakika önce powershell.exe başlatıldı.\n2. 9 dakika önce harici 198.51.100.14 IP adresine giden TCP bağlantısı kuruldu.\n3. Temp dizinine 'payload.ps1' adında yeni bir betik yazıldı.\nMITRE T1059.001 kapsamında RB-0105 runbook'u ile tam uyumludur."
+  }
+])
+
+# 8. Audit Events
+AuditEvent.create!([
+  {
+    trackable: det1,
+    user: analyst,
+    action: "investigation_started",
+    details: { analyst: analyst.name, source: "copilot_studio" },
+    ip_address: "127.0.0.1"
+  },
+  {
+    trackable: ticket1,
+    user: nil,
+    action: "ticket_created_by_agent",
+    details: { agent: "Sentriq-Autonomous-SOC-Copilot", priority: "critical" },
+    ip_address: "127.0.0.1"
+  }
+])
+
+puts "== Seed complete! Sentriq AI ready for triage, AI investigation & copilot demo =="

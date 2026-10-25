@@ -22,7 +22,24 @@ class PageAgentService
     log_step("observe", "Execution #{@execution_id}: Sayfa ve telemetri taranıyor. URL='#{@page_url}', Tespit ID=#{@page_context[:detection_id] || 'Yok'}, Sunucu='#{@page_context[:hostname] || 'N/A'}'")
 
     detection = resolve_detection
-    target_selector = target_dom_selector(detection)
+
+    # If no target detection or ticket could be identified in a general scan
+    if detection.nil? && @page_context[:ticket_id].blank?
+      log_step("observe", "Execution #{@execution_id}: İncelenecek açık veya uygun bir güvenlik olayı kalmadı.")
+      return {
+        success: true,
+        verified: true,
+        no_incidents_remaining: true,
+        execution_id: @execution_id,
+        target_detection_id: nil,
+        target_ticket_id: nil,
+        action: "scan_completed",
+        status: "idle",
+        verification_result: true,
+        message: "İncelenecek uygun güvenlik olayı kalmadı (Tüm tespitler triyaj edilmiş veya kapatılmıştır).",
+        steps: @steps
+      }
+    end
 
     if detection
       log_step("observe", "Hedef tespit gözlemlendi DET-#{detection.id}: '#{detection.title}' (Sunucu: #{detection.hostname}, Süreç: #{detection.process_name || 'N/A'}, Risk: #{detection.severity}, Durum: #{detection.status})")
@@ -38,14 +55,16 @@ class PageAgentService
 
     # Resolve or create ticket early so contextual analyzer can inspect it
     ticket = find_or_create_ticket(detection, ragie_results)
+    target_selector = target_dom_selector(detection, ticket)
 
     analysis_result = TicketContextualAnalyzerService.new(ticket: ticket, current_user: @current_user).call
     analysis = analysis_result[:analysis]
 
     # Decide if human approval is strictly required
-    # Mandatory HITL policy: Any high or critical severity, or explicit requires_human_approval flag, or destructive action requires human approval
+    # Mandatory HITL policy: Any high or critical severity, or explicit requires_human_approval flag, or existing pending_review status
     requires_human_approval = analysis["requires_human_approval"] == true ||
                               analysis["requires_human_review"] == true ||
+                              ticket.status == "pending_review" ||
                               ticket.priority.in?(%w[high critical]) ||
                               detection&.severity.in?(%w[high critical])
 
@@ -61,7 +80,14 @@ class PageAgentService
     log_step("think", "Akıl Yürütme [#{active_provider_name}]: Niyet='#{analysis['intent']}', Güven=%#{conf_pct}, İnsan Onayı Gerekli mi=#{requires_human_approval ? 'EVET (HITL Zorunlu)' : 'HAYIR (Rutin/Düşük Risk)'}")
 
     # ── STAGE 3: PLAN ────────────────────────────────────────────────────────
-    expected_status = requires_human_approval ? "pending_review" : "resolved"
+    expected_status = if requires_human_approval
+                        "pending_review"
+                      elsif ticket.status == "resolved"
+                        "resolved"
+                      else
+                        "resolved"
+                      end
+
     action_type = requires_human_approval ? "escalate_to_pending_review" : "auto_resolve_routine"
     containment_status = if requires_human_approval
                            "SIMULATED"
@@ -76,7 +102,7 @@ class PageAgentService
     # ── STAGE 4: ACT ─────────────────────────────────────────────────────────
     # A. Status Transitions & Containment recording
     if requires_human_approval
-      if ticket.can_transition_to?("pending_review")
+      if ticket.status != "pending_review" && ticket.can_transition_to?("pending_review")
         ticket.escalate_to_human!(
           reason: "Sentriq Page-Agent [#{execution_id}]: Seviye 2 analist doğrulaması gereklidir. Gerekçe: #{analysis['rationale']}",
           user: @current_user
@@ -93,6 +119,8 @@ class PageAgentService
         action: "simulated_host_isolation_recorded",
         details: {
           execution_id: @execution_id,
+          target_detection_id: detection&.id,
+          target_ticket_id: ticket.id,
           hostname: detection&.hostname || "workspace-host",
           simulated: true,
           status: "pending_approval",
@@ -104,8 +132,8 @@ class PageAgentService
       action_status = "PENDING_APPROVAL"
       log_step("act", "Güvenlik Politikası Devrede: Yüksek riskli tehdit için Seviye 2 analist doğrulaması istendi. Bilet #{ticket.ticket_number} 'pending_review' kuyruğuna alındı. Ağ izolasyonu SİMÜLE EDİLDİ.")
     else
-      # Low-risk or routine drill: can safely transition to resolved
-      if ticket.can_transition_to?("resolved")
+      # Low-risk or confirmed routine drill: safely transition to resolved if applicable
+      if ticket.status != "resolved" && ticket.can_transition_to?("resolved")
         ticket.transition_to!("resolved", user: @current_user, reason: "Sentriq Page-Agent: Rutin değerlendirme tamamlandı, tehdit saptanmadı veya tatbikat doğrulandı.")
       end
 
@@ -140,6 +168,8 @@ class PageAgentService
       metadata: {
         page_agent: true,
         execution_id: @execution_id,
+        target_detection_id: detection&.id,
+        target_ticket_id: ticket.id,
         requires_human_approval: requires_human_approval,
         action_status: action_status,
         containment_status: containment_status,
@@ -168,6 +198,11 @@ class PageAgentService
       action: "page_agent_action_executed",
       details: {
         execution_id: @execution_id,
+        target_detection_id: detection&.id,
+        target_ticket_id: ticket.id,
+        action: action_type,
+        status: actual_status,
+        verification_result: verified,
         instruction: @instruction,
         page_url: @page_url,
         rag_provider: ragie_response[:provider],
@@ -184,6 +219,11 @@ class PageAgentService
       success: verified,
       verified: verified,
       execution_id: @execution_id,
+      target_detection_id: detection&.id,
+      target_ticket_id: ticket.id,
+      action: action_type,
+      status: actual_status,
+      verification_result: verified,
       needs_human: requires_human_approval,
       ticket: {
         id: ticket.id,
@@ -195,8 +235,17 @@ class PageAgentService
       },
       decision: {
         intent: analysis["intent"],
+        classification: analysis["classification"] || analysis["intent"],
         confidence: conf_pct,
+        confidence_rationale: analysis["confidence_rationale"],
         rationale: analysis["rationale"],
+        incident_summary: analysis["incident_summary"],
+        root_cause_hypotheses: analysis["root_cause_hypotheses"],
+        alternative_hypotheses: analysis["alternative_hypotheses"],
+        evidence: analysis["evidence"],
+        missing_evidence: analysis["missing_evidence"],
+        matched_runbooks: analysis["matched_runbooks"],
+        prevention_measures: analysis["prevention_measures"],
         recommended_action: analysis["recommended_action"],
         requires_human_approval: requires_human_approval,
         action_status: action_status,
@@ -205,8 +254,17 @@ class PageAgentService
       },
       analysis: {
         intent: analysis["intent"],
+        classification: analysis["classification"] || analysis["intent"],
         confidence: conf_pct,
+        confidence_rationale: analysis["confidence_rationale"],
         rationale: analysis["rationale"],
+        incident_summary: analysis["incident_summary"],
+        root_cause_hypotheses: analysis["root_cause_hypotheses"],
+        alternative_hypotheses: analysis["alternative_hypotheses"],
+        evidence: analysis["evidence"],
+        missing_evidence: analysis["missing_evidence"],
+        matched_runbooks: analysis["matched_runbooks"],
+        prevention_measures: analysis["prevention_measures"],
         recommended_action: analysis["recommended_action"],
         requires_human_approval: requires_human_approval,
         action_status: action_status,
@@ -232,6 +290,11 @@ class PageAgentService
       success: false,
       verified: false,
       execution_id: @execution_id,
+      target_detection_id: @page_context[:detection_id],
+      target_ticket_id: @page_context[:ticket_id],
+      action: "error",
+      status: "failed",
+      verification_result: false,
       needs_human: false,
       error: e.message,
       steps: @steps
@@ -254,13 +317,19 @@ class PageAgentService
     end
   end
 
-  def target_dom_selector(detection)
-    return "#detection-row-#{detection.id}" if detection
-    ".data-table tbody tr:first-child"
+  def target_dom_selector(detection, ticket = nil)
+    if detection
+      "#detection-row-#{detection.id}"
+    elsif ticket
+      "#ticket-row-#{ticket.id}"
+    else
+      nil
+    end
   end
 
   def build_dom_actions(detection, ticket, requires_human_approval, containment_status)
-    selector = target_dom_selector(detection)
+    selector = target_dom_selector(detection, ticket)
+    return [] unless selector
 
     badge_color = requires_human_approval ? "#f59e0b" : "#10b981"
     badge_label = if requires_human_approval
@@ -273,6 +342,8 @@ class PageAgentService
       {
         type: "move_cursor_and_click",
         selector: selector,
+        target_detection_id: detection&.id,
+        target_ticket_id: ticket.id,
         phase: "observe",
         label: "🎯 Sanal İmleç: Tehdit Satırına Yönelindi",
         description: "Sentriq sanal imleci hedef satıra yöneldi ve telemetriyi doğruladı"
@@ -280,6 +351,8 @@ class PageAgentService
       {
         type: "perceive_and_highlight",
         selector: selector,
+        target_detection_id: detection&.id,
+        target_ticket_id: ticket.id,
         phase: "observe",
         label: "🎯 SENTRIQ: HEDEF TEHDİT",
         border_color: "#facc15"
@@ -294,6 +367,8 @@ class PageAgentService
       {
         type: "execute_containment",
         selector: selector,
+        target_detection_id: detection&.id,
+        target_ticket_id: ticket.id,
         phase: "act",
         label: badge_label,
         border_color: badge_color,
@@ -303,6 +378,7 @@ class PageAgentService
       {
         type: "auto_open_ticket",
         ticket_id: ticket.id,
+        target_detection_id: detection&.id,
         ticket_url: "/tickets/#{ticket.id}",
         ticket_number: ticket.ticket_number,
         title: ticket.title,
@@ -327,10 +403,50 @@ class PageAgentService
       t = Ticket.find_by(id: ::Regexp.last_match(1))
       t&.detection
     else
-      # Prioritize active detections without tickets
-      active_ticket_det_ids = Ticket.where.not(status: %w[closed]).where.not(detection_id: nil).pluck(:detection_id)
-      Detection.active.where.not(id: active_ticket_det_ids).recent_first.first || Detection.active.recent_first.first
+      resolve_next_detection
     end
+  end
+
+  def resolve_next_detection
+    candidates = Detection.all
+
+    # If visible detection IDs are provided from the DOM, restrict scope to current view
+    if @page_context[:visible_detection_ids].present?
+      visible = candidates.where(id: @page_context[:visible_detection_ids])
+      candidates = visible if visible.exists?
+    end
+
+    # Exclude the detection handled in the immediate prior run if other candidates exist
+    last_id = @page_context[:last_handled_detection_id]
+    if last_id.present? && candidates.where.not(id: last_id).exists?
+      candidates = candidates.where.not(id: last_id)
+    end
+
+    # Priority Rule 1: SLA at risk (>15 min elapsed, status in new/open)
+    sla_candidates = candidates.select(&:sla_risk?)
+    return sla_candidates.first if sla_candidates.any?
+
+    # Priority Rule 2: Untriaged active detections without an active ticket
+    active_ticket_det_ids = Ticket.where.not(status: %w[resolved closed]).where.not(detection_id: nil).pluck(:detection_id)
+    untriaged = candidates.where.not(id: active_ticket_det_ids).where.not(status: %w[solved closed])
+    if untriaged.exists?
+      return untriaged.order(
+        Arel.sql("CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END"),
+        triggered_at: :desc
+      ).first
+    end
+
+    # Priority Rule 3: Active detections awaiting investigation/review
+    active_pool = candidates.where(status: %w[new open investigating pending_review])
+    if active_pool.exists?
+      return active_pool.order(
+        Arel.sql("CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END"),
+        triggered_at: :desc
+      ).first
+    end
+
+    # No unhandled or active incident remaining
+    nil
   end
 
   def find_or_create_ticket(detection, _ragie_results)
@@ -346,7 +462,7 @@ class PageAgentService
     end
 
     # Deterministic idempotency key: one ticket per detection per hour
-    det_key = detection&.id || "gen"
+    det_key = detection&.id || "gen-#{SecureRandom.hex(4)}"
     time_window = Time.current.strftime("%Y%m%d%H")
     idempotency_key = "page-agent-det-#{det_key}-#{time_window}"
 

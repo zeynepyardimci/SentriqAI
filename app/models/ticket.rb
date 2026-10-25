@@ -4,8 +4,8 @@ class Ticket < ApplicationRecord
 
   VALID_TRANSITIONS = {
     "open" => %w[investigating pending_review resolved closed],
-    "investigating" => %w[pending_review resolved closed],
-    "pending_review" => %w[resolved investigating closed],
+    "investigating" => %w[pending_review resolved closed open],
+    "pending_review" => %w[resolved investigating closed open],
     "resolved" => %w[open closed],
     "closed" => %w[open]
   }.freeze
@@ -62,9 +62,30 @@ class Ticket < ApplicationRecord
     )
   end
 
+  def reopen!(user: nil, reason: nil)
+    unless can_transition_to?("open")
+      errors.add(:status, "cannot transition from '#{status}' to 'open'. Sadece çözülmüş (resolved) veya kapatılmış (closed) biletler yeniden açılabilir.")
+      raise ActiveRecord::RecordInvalid, self
+    end
+
+    transition_to!("open", user: user, reason: reason || "Bilet analist tarafından yeniden açıldı.")
+  end
+
   def escalate_to_human!(reason:, user: nil)
     ActiveRecord::Base.transaction do
-      if status != "pending_review"
+      case status
+      when "pending_review"
+        # Already in pending_review
+      when "open", "investigating"
+        transition_to!("pending_review", user: user, reason: reason)
+      when "resolved"
+        # Controlled reopening of resolved ticket for review
+        transition_to!("open", user: user, reason: "Bilet yeniden inceleme için açıldı: #{reason}")
+        transition_to!("pending_review", user: user, reason: reason)
+      when "closed"
+        errors.add(:status, "cannot transition directly from 'closed' to 'pending_review'. Kapatılmış bilet önce yetkili bir analist tarafından yeniden açılmalıdır.")
+        raise ActiveRecord::RecordInvalid, self
+      else
         transition_to!("pending_review", user: user, reason: reason)
       end
 
@@ -74,7 +95,7 @@ class Ticket < ApplicationRecord
         author_name: user ? user.name : (assigned_agent || "Automated Agent"),
         note_type: "escalation",
         body: reason,
-        metadata: { trigger: "ai_uncertainty_or_high_risk" }
+        metadata: { trigger: "ai_uncertainty_or_high_risk", previous_status: status_before_type_cast }
       )
     end
   end

@@ -98,7 +98,7 @@
       </thead>
       <tbody>
         <% @tickets.each do |ticket| %>
-          <tr>
+          <tr id="ticket-row-<%= ticket.id %>" class="ticket-row" data-ticket-id="<%= ticket.id %>" data-priority="<%= ticket.priority %>">
             <td>
               <span style="font-family: var(--font-mono); font-weight: 600; color: var(--cyan-primary);">
                 <%= ticket.ticket_number %>
@@ -137,8 +137,19 @@
                 <%= time_ago_in_words(ticket.created_at) %> ago
               </span>
             </td>
-            <td>
-              <%= link_to "Review", ticket_path(ticket), class: "btn btn-secondary", style: "padding: 0.35rem 0.75rem; font-size: 0.8rem;" %>
+            <td class="action-cell">
+              <div class="action-btn-group">
+                <%= link_to "İncele", ticket_path(ticket), class: "btn btn-secondary", style: "padding: 0.35rem 0.75rem; font-size: 0.8rem;" %>
+                <button
+                  type="button"
+                  id="quick-view-ticket-btn-<%= ticket.id %>"
+                  onclick="paAutoRunForTicket(<%= ticket.id %>, '<%= j(ticket.ticket_number) %>', '<%= j(ticket.title) %>')"
+                  class="btn btn-agent"
+                  style="padding: 0.35rem 0.75rem; font-size: 0.8rem;"
+                  title="Hızlı AI Analiz Modalı Aç">
+                  ⚡ Hızlı İnceleme
+                </button>
+              </div>
             </td>
           </tr>
         <% end %>

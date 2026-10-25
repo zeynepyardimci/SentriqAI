@@ -23,7 +23,7 @@
 <!-- Filters and Search -->
 <div class="filter-bar">
   <%= form_with url: detections_path, method: :get, local: true, class: "filter-inputs" do |f| %>
-    <%= f.text_field :query, value: params[:query], placeholder: "Search process, host, title...", class: "input-control", style: "width: 260px;" %>
+    <%= f.text_field :query, value: params[:query], placeholder: "Search process, host, title...", class: "input-control", style: "min-width: 160px; flex: 1 1 200px;" %>
     
     <%= f.select :severity, 
       options_for_select([["All Severities", "all"], ["Critical", "critical"], ["High", "high"], ["Medium", "medium"], ["Low", "low"]], params[:severity]), 
@@ -100,8 +100,19 @@
                 <span style="color: #94a3b8; font-size: 0.75rem;">Healthy</span>
               <% end %>
             </td>
-            <td>
-              <%= link_to "Investigate", detection_path(det), class: "btn btn-secondary", style: "padding: 0.35rem 0.75rem; font-size: 0.8rem;" %>
+            <td class="action-cell">
+              <div class="action-btn-group">
+                <%= link_to "Araştır", detection_path(det), class: "btn btn-secondary", style: "padding: 0.35rem 0.75rem; font-size: 0.8rem;" %>
+                <button
+                  type="button"
+                  id="quick-view-btn-<%= det.id %>"
+                  onclick="paAutoRunForDetection(<%= det.id %>, '<%= j(det.title) %>', '<%= j(det.hostname) %>')"
+                  class="btn btn-agent"
+                  style="padding: 0.35rem 0.75rem; font-size: 0.8rem;"
+                  title="Hızlı AI İnceleme Modal Aç">
+                  ⚡ Hızlı İnceleme
+                </button>
+              </div>
             </td>
           </tr>
         <% end %>

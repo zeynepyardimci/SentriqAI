@@ -1,15 +1,43 @@
 # frozen_string_literal: true
 
 class PageAgentController < ApplicationController
+  rescue_from ActionDispatch::Http::Parameters::ParseError, with: :handle_parse_error
+  rescue_from ActionController::BadRequest, with: :handle_bad_request
+
+  public
+
+  def handle_bad_request(exception)
+    Rails.logger.error "PageAgentController BadRequest: #{exception.message}"
+    render json: { success: false, error: 'Bad request: #{exception.message}' }, status: :bad_request
+  end
+  def handle_parse_error(exception)
+    Rails.logger.error "PageAgentController ParseError: #{exception.message}"
+    render json: { success: false, error: "Parse error: #{exception.message}" }, status: :bad_request
+  end
+
   protect_from_forgery except: [:execute, :ragie_search, :set_api_key]
 
   # POST /page_agent/execute
   def execute
     instruction = params[:instruction].presence || "Bu tespiti incele, otomatik ticket aç, Ragie RAG'e sor ve raporla"
-    page_url = params[:page_url].presence || request.referer || root_path
-    page_context = params[:page_context] || {}
+    page_url     = params[:page_url].presence || request.referer || root_path
+
+    # Safely permit all nested page_context keys to avoid UnfilteredParameters error
+    raw_ctx = params[:page_context]
+    page_context = if raw_ctx.respond_to?(:permit!)
+                     raw_ctx.permit!.to_h
+                   elsif raw_ctx.is_a?(Hash)
+                     raw_ctx
+                   else
+                     {}
+                   end
+
+    if session[:last_handled_detection_id].present? && page_context[:last_handled_detection_id].blank?
+      page_context[:last_handled_detection_id] = session[:last_handled_detection_id]
+    end
+
     human_intervention = ActiveModel::Type::Boolean.new.cast(params[:human_intervention]) || false
-    confirmed_action = params[:confirmed_action].presence
+    confirmed_action   = params[:confirmed_action].presence
 
     service = PageAgentService.new(
       instruction: instruction,
@@ -20,12 +48,12 @@ class PageAgentController < ApplicationController
       confirmed_action: confirmed_action
     )
 
-    result = service.call
-
-    if result[:success]
-      render json: result, status: :ok
-    else
-      render json: result, status: :unprocessable_entity
+    begin
+      result = service.call
+      render json: result, status: (result[:success] ? :ok : :unprocessable_entity)
+    rescue StandardError => e
+      Rails.logger.error "PageAgentController#execute failed: #{e.message}"
+      render json: { success: false, error: e.message }, status: :internal_server_error
     end
   end
 

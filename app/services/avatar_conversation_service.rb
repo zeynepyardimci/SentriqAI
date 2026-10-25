@@ -77,6 +77,7 @@ class AvatarConversationService
       response: response_payload[:response],
       speech_text: response_payload[:speech_text],
       action_taken: response_payload[:action_taken],
+      ticket_status: @ticket&.status,
       ticket: @ticket ? serialize_ticket(@ticket) : nil,
       detection_id: @detection&.id
     }
@@ -181,17 +182,67 @@ class AvatarConversationService
 
   def handle_escalate_intent
     action_taken = nil
-    if @ticket
-      @ticket.escalate_to_human!(reason: "AI Avatar analist sesli/yazılı komutu ile insan incelemesine devredildi.", user: @current_user)
-      speech = "Olay Seviye 2 analist incelemesi için pending review durumuna aktarıldı. Güvenlik kilidi devrede."
-      body = "### ⚠️ İnsan İncelemesine Eskalasyon Yapıldı\n- **Bilet:** `#{@ticket.ticket_number}`\n- **Yeni Durum:** `pending_review`\n- **Açıklama:** Yüksek riskli müdahaleler insan onayı beklemektedir."
-      action_taken = "ticket_escalated"
-    else
+    if @ticket.nil?
       speech = "Henüz bilet açılmamış. Eskalasyon için önce bilet oluşturulmalıdır."
       body = "⚠️ Bu olay için henüz bir bilet açılmamış. Lütfen 'Bu olay için ticket oluştur' komutunu verin."
       action_taken = "ticket_missing"
+      return { response: body, speech_text: speech, action_taken: action_taken }
     end
-    { response: body, speech_text: speech, action_taken: action_taken }
+
+    case @ticket.status
+    when "closed"
+      speech = "Bu bilet (#{@ticket.ticket_number}) kapatılmıştır. Kapatılmış biletler doğrudan incelemeye gönderilemez, önce yeniden açılmalıdır."
+      body = "### 🚫 Bilet Kapatılmış\n- **Bilet:** `#{@ticket.ticket_number}`\n- **Durum:** `closed`\n- **Uyarı:** Kapatılmış bir bilet doğrudan eskalasyona alınamaz. Lütfen yetkili bir analist ile yeniden açma işlemi gerçekleştirin."
+      action_taken = "ticket_closed"
+    when "resolved"
+      # Controlled reopen and escalate with full verification
+      @ticket.escalate_to_human!(
+        reason: "AI Avatar analist komutu: Çözülmüş bilet (#{@ticket.ticket_number}) yeniden insan incelemesine alındı.",
+        user: @current_user
+      )
+      @ticket.reload
+      if @ticket.status == "pending_review"
+        speech = "Çözülmüş olan bilet yeniden açıldı ve Seviye 2 analist incelemesi için pending review durumuna aktarıldı."
+        body = "### 🔄 Çözülmüş Bilet Yeniden İncelemeye Alındı\n- **Bilet:** `#{@ticket.ticket_number}`\n- **Önceki Durum:** `resolved`\n- **Yeni Durum:** `pending_review`\n- **Açıklama:** Kontrollü reopen işlemi uygulandı; güvenlik kilidi ve analist onayı devrede."
+        action_taken = "ticket_reopened_and_escalated"
+      else
+        speech = "Bilet durumu güncellenemedi."
+        body = "❌ Bilet durumu güncellenemedi. Lütfen sistem yöneticisi ile iletişime geçin."
+        action_taken = "escalation_failed"
+      end
+    when "open", "investigating", "pending_review"
+      if @ticket.status != "pending_review"
+        @ticket.escalate_to_human!(
+          reason: "AI Avatar analist sesli/yazılı komutu ile insan incelemesine devredildi.",
+          user: @current_user
+        )
+      else
+        @ticket.ticket_notes.create!(
+          user: @current_user,
+          author_type: @current_user ? "human" : "system",
+          author_name: @current_user ? @current_user.name : "AI Avatar",
+          note_type: "escalation",
+          body: "AI Avatar: Analist tarafından insan incelemesine eskalasyon yinelendi.",
+          metadata: { trigger: "avatar_analyst_command" }
+        )
+      end
+      @ticket.reload
+      if @ticket.status == "pending_review"
+        speech = "Olay Seviye 2 analist incelemesi için pending review durumuna aktarıldı. Güvenlik kilidi devrede."
+        body = "### ⚠️ İnsan İncelemesine Eskalasyon Yapıldı\n- **Bilet:** `#{@ticket.ticket_number}`\n- **Yeni Durum:** `pending_review`\n- **Açıklama:** Yüksek riskli müdahaleler insan onayı beklemektedir."
+        action_taken = "ticket_escalated"
+      else
+        speech = "Bilet durumu güncellenemedi."
+        body = "❌ Bilet durumu güncellenemedi."
+        action_taken = "escalation_failed"
+      end
+    else
+      speech = "Bilinmeyen bilet durumu: #{@ticket.status}."
+      body = "⚠️ Bilet durumu anlaşılamadı (#{@ticket.status})."
+      action_taken = "unknown_status"
+    end
+
+    { response: body, speech_text: speech, action_taken: action_taken, ticket_status: @ticket.status }
   end
 
   def handle_root_cause_intent(root_cause)

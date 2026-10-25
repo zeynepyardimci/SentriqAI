@@ -88,21 +88,22 @@
   </div>
 
   <div style="padding: 1.2rem 1.4rem; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:0.85rem; font-size:0.8rem; color:#e2e8f0; line-height:1.5;">
-    <!-- Rationale & Forensic Reasoning -->
+    <!-- Incident Summary & Forensic Reasoning -->
     <div style="background:rgba(6,182,212,0.08); border-left:3px solid #06b6d4; padding:0.75rem 1rem; border-radius:4px;">
-      <div style="font-size:0.72rem; color:#38bdf8; font-weight:700; text-transform:uppercase; margin-bottom:0.25rem;">🧠 LLM Olay Analizi & Mantıksal Değerlendirme (Reasoning):</div>
+      <div style="font-size:0.72rem; color:#38bdf8; font-weight:700; text-transform:uppercase; margin-bottom:0.25rem;">📝 Olay Özeti & Gerekçe:</div>
       <div id="pa-modal-rationale" style="color:#cbd5e1;">Ajan sayfa telemetrisini ve sistem kayıtlarını analiz etti.</div>
     </div>
 
     <!-- Structured Decision Grid -->
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
       <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.6rem 0.8rem;">
-        <div style="font-size:0.68rem; color:#94a3b8;">Saldırı Türü / Niyet</div>
+        <div style="font-size:0.68rem; color:#94a3b8;">Saldırı Türü / Sınıflandırma</div>
         <div id="pa-modal-intent" style="font-weight:700; color:#f87171; margin-top:0.15rem;">Active Threat Containment</div>
       </div>
       <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.6rem 0.8rem;">
-        <div style="font-size:0.68rem; color:#94a3b8;">AI Güven Skoru</div>
-        <div id="pa-modal-confidence" style="font-weight:700; color:#34d399; margin-top:0.15rem;">%88</div>
+        <div style="font-size:0.68rem; color:#94a3b8;">AI Güven Değerlendirmesi</div>
+        <div id="pa-modal-confidence" style="font-weight:700; color:#34d399; margin-top:0.15rem;">Hesaplanıyor...</div>
+        <div style="font-size:0.65rem; color:#64748b; margin-top:2px;">(Kalibre edilmiş saldırı olasılığı değildir)</div>
       </div>
       <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.6rem 0.8rem;">
         <div style="font-size:0.68rem; color:#94a3b8;">Önerilen Eylem</div>
@@ -112,6 +113,23 @@
         <div style="font-size:0.68rem; color:#94a3b8;">Aksiyon Durumu</div>
         <div id="pa-modal-action-status" style="font-weight:700; color:#f59e0b; margin-top:0.15rem;">PENDING_APPROVAL (SIMULATED)</div>
       </div>
+    </div>
+
+    <!-- Root Causes & Evidence Section -->
+    <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.07); border-radius:8px; padding:0.75rem 1rem;">
+      <div style="font-size:0.72rem; color:#c084fc; font-weight:700; text-transform:uppercase; margin-bottom:0.35rem;">🎯 Olası Kök Neden Hipotezleri:</div>
+      <div id="pa-modal-root-causes" style="color:#e2e8f0; font-size:0.75rem; line-height:1.4;">Yükleniyor...</div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.07); border-radius:8px; padding:0.75rem 1rem;">
+      <div style="font-size:0.72rem; color:#38bdf8; font-weight:700; text-transform:uppercase; margin-bottom:0.35rem;">🔍 Somut Kanıtlar & Eksik Bilgiler:</div>
+      <div id="pa-modal-evidence-box" style="color:#cbd5e1; font-size:0.75rem; line-height:1.4;">Yükleniyor...</div>
+    </div>
+
+    <!-- Runbook Matches Section -->
+    <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.07); border-radius:8px; padding:0.75rem 1rem;">
+      <div style="font-size:0.72rem; color:#34d399; font-weight:700; text-transform:uppercase; margin-bottom:0.35rem;">📖 Eşleşen Kurumsal Runbook Prosedürü:</div>
+      <div id="pa-modal-runbooks-box" style="color:#cbd5e1; font-size:0.75rem; line-height:1.4;">Runbook sorgulanıyor...</div>
     </div>
 
     <!-- Human-In-The-Loop & Verification -->
@@ -255,7 +273,7 @@
       <span>💡</span> Hızlı Aksiyonlar (Tıkla ve Çalıştır):
     </div>
     <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
-      <button onclick="paUseQuickPrompt('Ransomware tespitini incele ve etkilenen sistemi izole et')" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; border-radius:4px; padding:0.2rem 0.45rem; font-size:0.67rem; cursor:pointer;">⚡ Ransomware İzole Et</button>
+      <button onclick="paUseQuickPrompt('Öncelikli güvenlik alarmını incele ve triyaj et')" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#fca5a5; border-radius:4px; padding:0.2rem 0.45rem; font-size:0.67rem; cursor:pointer;">⚡ Tehdit Triyajı</button>
       <button onclick="paUseQuickPrompt('Kritik tehditleri dahili runbook rehberiyle analiz et ve bilet aç')" style="background:rgba(6,182,212,0.15); border:1px solid rgba(6,182,212,0.4); color:#67e8f9; border-radius:4px; padding:0.2rem 0.45rem; font-size:0.67rem; cursor:pointer;">🛡️ Runbook ile Triaj Et</button>
       <button onclick="paUseQuickPrompt('Sayfadaki şüpheli aktiviteleri tara ve karantinaya al')" style="background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.4); color:#d8b4fe; border-radius:4px; padding:0.2rem 0.45rem; font-size:0.67rem; cursor:pointer;">👁️ Tehditleri Tara & İzole Et</button>
       <button onclick="paUseQuickPrompt('SOC vardiya devir ve olay özet raporu hazırla')" style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); color:#6ee7b7; border-radius:4px; padding:0.2rem 0.45rem; font-size:0.67rem; cursor:pointer;">📋 SOC Raporu</button>
@@ -466,6 +484,105 @@
   }
   window.paManualSubmit = paManualSubmit;
 
+  // ── Quick-view & agent triage for a specific detection (ALL event types) ──
+  function paAutoRunForDetection(detectionId, detectionTitle, hostname) {
+    paLastTicketData = null;
+    paLastTargetSelector = "#detection-row-" + detectionId;
+
+    const panel = document.getElementById("pa-panel");
+    if (panel) panel.style.display = "flex";
+
+    paSetOrbState("working");
+    paSetButtonLoading(true);
+    paAppendPanelLog("observe", "Hızlı İnceleme Başlatıldı: [DET-" + detectionId + "] " + detectionTitle + " (" + hostname + ")");
+
+    const targetEl = document.getElementById("detection-row-" + detectionId) ||
+                     document.querySelector('[data-detection-id="' + detectionId + '"]');
+
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      targetEl.classList.remove("pa-sentriq-targeted");
+      void targetEl.offsetWidth;
+      targetEl.classList.add("pa-sentriq-targeted");
+    }
+
+    const csrfToken = (document.querySelector('meta[name="csrf-token"]') || {}).content || "";
+    const payload = {
+      instruction: "Bu tespiti incele, bilet oluştur veya mevcut bileti getir ve otonom analizi tamamla",
+      page_url: window.location.pathname,
+      page_context: {
+        detection_id: detectionId,
+        hostname: hostname,
+        target_selector: "#detection-row-" + detectionId
+      }
+    };
+
+    fetch("/page_agent/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+      body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      paSetButtonLoading(false);
+      paHandleResult(data);
+    })
+    .catch(function(err) {
+      paSetButtonLoading(false);
+      paHandleError(err.message);
+    });
+  }
+  window.paAutoRunForDetection = paAutoRunForDetection;
+
+  // ── Quick-view & agent triage for a specific ticket (ALL ticket types) ───
+  function paAutoRunForTicket(ticketId, ticketNumber, ticketTitle) {
+    paLastTicketData = null;
+    paLastTargetSelector = "#ticket-row-" + ticketId;
+
+    const panel = document.getElementById("pa-panel");
+    if (panel) panel.style.display = "flex";
+
+    paSetOrbState("working");
+    paSetButtonLoading(true);
+    paAppendPanelLog("observe", "Hızlı Bilet İnceleme: [" + ticketNumber + "] " + ticketTitle);
+
+    const targetEl = document.getElementById("ticket-row-" + ticketId) ||
+                     document.querySelector('[data-ticket-id="' + ticketId + '"]');
+
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      targetEl.classList.remove("pa-sentriq-targeted");
+      void targetEl.offsetWidth;
+      targetEl.classList.add("pa-sentriq-targeted");
+    }
+
+    const csrfToken = (document.querySelector('meta[name="csrf-token"]') || {}).content || "";
+    const payload = {
+      instruction: "Bu bileti incele ve AI analizini göster",
+      page_url: window.location.pathname,
+      page_context: {
+        ticket_id: ticketId,
+        target_selector: "#ticket-row-" + ticketId
+      }
+    };
+
+    fetch("/page_agent/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
+      body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      paSetButtonLoading(false);
+      paHandleResult(data);
+    })
+    .catch(function(err) {
+      paSetButtonLoading(false);
+      paHandleError(err.message);
+    });
+  }
+  window.paAutoRunForTicket = paAutoRunForTicket;
+
   function paUseQuickPrompt(text) {
     const input = document.getElementById("pa-manual-input");
     input.value = text;
@@ -493,6 +610,13 @@
       data.steps.forEach(function(s) {
         paAppendPanelLog(s.phase, s.message);
       });
+    }
+
+    if (data.no_incidents_remaining) {
+      paSetOrbState("done");
+      paAppendPanelLog("verify", "ℹ️ " + (data.message || "Tüm aktif güvenlik olayları triyaj edilmiştir."));
+      paShowToast("ℹ️ Olay Tarama Tamamlandı", data.message || "İncelenecek uygun güvenlik olayı kalmadı.", []);
+      return;
     }
 
     if (data.success && data.ticket) {
@@ -782,11 +906,85 @@
 
     const dec = fullData.decision || fullData.analysis || {};
     document.getElementById("pa-modal-rationale").innerText = dec.rationale || "Tehdit analizi tamamlandı.";
-    document.getElementById("pa-modal-intent").innerText = dec.intent || "Güvenlik İhlali Tespiti";
+    document.getElementById("pa-modal-intent").innerText = dec.intent || dec.classification || "Güvenlik İhlali Tespiti";
 
-    const conf = parseFloat(dec.confidence || 88);
-    const confPct = conf <= 1 ? Math.round(conf * 100) : Math.round(conf);
-    document.getElementById("pa-modal-confidence").innerText = "%" + confPct;
+    // Confidence: use actual score from this ticket's analysis; no static fallback.
+    const rawConf = dec.confidence;
+    let confDisplay;
+    if (rawConf !== undefined && rawConf !== null && rawConf !== "" && !isNaN(rawConf)) {
+      const confNum = parseFloat(rawConf);
+      const confPct = confNum <= 1 ? Math.round(confNum * 100) : Math.round(confNum);
+      confDisplay = "%" + confPct;
+    } else {
+      confDisplay = "Güven değerlendirmesi üretilemedi (Eksik telemetri)";
+    }
+    document.getElementById("pa-modal-confidence").innerText = confDisplay;
+
+    // Show confidence rationale & incident summary
+    const rationaleEl = document.getElementById("pa-modal-rationale");
+    const summaryText = dec.incident_summary || dec.rationale || dec.reasoning || "Tehdit analizi tamamlandı.";
+    if (dec.confidence_rationale && rationaleEl) {
+      rationaleEl.innerText = summaryText + "\n\nGüven Değerlendirmesi Gerekçesi: " + dec.confidence_rationale;
+    } else {
+      rationaleEl.innerText = summaryText;
+    }
+
+    // 1. Root Causes
+    const rootCausesEl = document.getElementById("pa-modal-root-causes");
+    if (rootCausesEl) {
+      const causes = dec.root_cause_hypotheses || [];
+      const altCauses = dec.alternative_hypotheses || [];
+      if (causes.length || altCauses.length) {
+        let rcHtml = "";
+        causes.forEach(function(c) {
+          rcHtml += "<div><strong>🎯 Birincil:</strong> " + escHtml(c.hypothesis || c) + " <span style='color:#f59e0b;'>[" + escHtml(c.likelihood || 'High') + "]</span><div style='color:#94a3b8; font-size:0.7rem;'>" + escHtml(c.rationale || '') + "</div></div>";
+        });
+        altCauses.forEach(function(a) {
+          rcHtml += "<div style='margin-top:0.3rem;'><strong>🔄 Alternatif:</strong> " + escHtml(a.hypothesis || a) + " <span style='color:#60a5fa;'>[" + escHtml(a.likelihood || 'Low') + "]</span><div style='color:#94a3b8; font-size:0.7rem;'>" + escHtml(a.rationale || '') + "</div></div>";
+        });
+        rootCausesEl.innerHTML = rcHtml;
+      } else {
+        rootCausesEl.innerHTML = "<span style='color:#94a3b8;'>Belirli bir kök neden ayrıştırılamadı.</span>";
+      }
+    }
+
+    // 2. Concrete Evidence & Missing Gaps
+    const evBox = document.getElementById("pa-modal-evidence-box");
+    if (evBox) {
+      const evs = dec.evidence || [];
+      const gaps = dec.missing_evidence || [];
+      let evHtml = "";
+      if (evs.length) {
+        evHtml += "<div style='margin-bottom:0.25rem;'><strong style='color:#38bdf8;'>Somut Bulgular:</strong></div>";
+        evs.slice(0, 4).forEach(function(e) {
+          evHtml += "<div>• " + escHtml(e) + "</div>";
+        });
+      }
+      if (gaps.length) {
+        evHtml += "<div style='margin-top:0.35rem;'><strong style='color:#fbbf24;'>Eksik Telemetri (Gaps):</strong></div>";
+        gaps.slice(0, 3).forEach(function(g) {
+          evHtml += "<div style='color:#cbd5e1;'>❓ " + escHtml(g) + "</div>";
+        });
+      }
+      evBox.innerHTML = evHtml || "<span style='color:#94a3b8;'>Telemetri sınırlı.</span>";
+    }
+
+    // 3. Matched Runbooks
+    const rbBox = document.getElementById("pa-modal-runbooks-box");
+    if (rbBox) {
+      const rbs = dec.matched_runbooks || fullData.ragie_results || [];
+      if (rbs.length) {
+        let rbHtml = "";
+        rbs.slice(0, 2).forEach(function(r) {
+          const title = r.title || r.document_title || "Kurumsal Prosedür";
+          const quote = r.quote || r.sanitized_content || "";
+          rbHtml += "<div><strong>📘 " + escHtml(title) + ":</strong> <span style='font-style:italic; color:#94a3b8;'>\"" + escHtml(quote.substring(0, 140)) + "...\"</span></div>";
+        });
+        rbBox.innerHTML = rbHtml;
+      } else {
+        rbBox.innerHTML = "<span style='color:#94a3b8;'>Bilgi tabanında bu olay için özel bir prosedür eşleşmemiştir (kaynak uydurulmamıştır).</span>";
+      }
+    }
 
     document.getElementById("pa-modal-recommended-action").innerText = dec.recommended_action || "Host Network Isolation";
 
@@ -1064,9 +1262,26 @@
 
   // ── Page context ─────────────────────────────────────────────────────────
   function paGetContext() {
-    const ctx = { url: window.location.pathname, title: document.title };
-    const m = window.location.pathname.match(/\/detections\/(\d+)/);
-    if (m) ctx.detection_id = parseInt(m[1], 10);
+    const ctx = {
+      url: window.location.pathname,
+      title: document.title,
+      last_handled_detection_id: paLastHandledDetectionId || null
+    };
+
+    const mDet = window.location.pathname.match(/\/detections\/(\d+)/);
+    if (mDet) ctx.detection_id = parseInt(mDet[1], 10);
+
+    const mTick = window.location.pathname.match(/\/tickets\/(\d+)/);
+    if (mTick) ctx.ticket_id = parseInt(mTick[1], 10);
+
+    // Collect all visible detection IDs from DOM rows on detections page
+    const detRows = document.querySelectorAll("[data-detection-id]");
+    if (detRows && detRows.length > 0) {
+      ctx.visible_detection_ids = Array.from(detRows).map(function(r) {
+        return parseInt(r.getAttribute("data-detection-id"), 10);
+      }).filter(Boolean);
+    }
+
     const h = document.querySelector(".telemetry-item:nth-child(1) .telemetry-value");
     if (h) ctx.hostname = h.innerText.trim();
     return ctx;

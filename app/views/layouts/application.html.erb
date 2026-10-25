@@ -12,7 +12,16 @@
 
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+<%= stylesheet_link_tag "responsive", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
+
+    <!-- Instant Theme Detection (prevents flash of dark/light theme) -->
+    <script>
+      (function() {
+        var theme = localStorage.getItem('sentriq_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
   </head>
 
   <body>
@@ -42,7 +51,7 @@
     </div>
 
     <!-- Header Navigation -->
-    <header class="sentriq-header">
+    <header class="sentriq-header" style="position: sticky; top: 0; z-index: 1000;">
       <div class="brand-container">
         <a href="<%= root_path %>" style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none;">
           <!-- Custom Sentriq AI Geometric Shield SVG Logo -->
@@ -62,14 +71,18 @@
         </a>
       </div>
 
-      <nav class="nav-links">
+      <button id="menuToggleBtn" type="button" class="menu-toggle" onclick="toggleMenu()" aria-label="Navigasyon Menüsü">
+        ☰
+      </button>
+
+      <nav class="nav-links" id="navLinks">
         <%= link_to "🎙️ AI Copilot & Avatar", copilot_path, class: "nav-link #{'active' if controller_name == 'copilot'}", style: "color: #38bdf8; font-weight: 700;" %>
         <%= link_to "Detections Triage", detections_path, class: "nav-link #{'active' if controller_name == 'detections'}" %>
         <%= link_to "Agent Tickets", tickets_path, class: "nav-link #{'active' if controller_name == 'tickets' && action_name != 'demo'}" %>
         <%= link_to "Agent Activity Demo", demo_tickets_path, class: "nav-link #{'active' if controller_name == 'tickets' && action_name == 'demo'}" %>
         <%= link_to "Knowledge Runbooks", knowledge_documents_path, class: "nav-link #{'active' if controller_name == 'knowledge_documents'}" %>
         <%= link_to "Audit Trail", audit_trail_path, class: "nav-link #{'active' if controller_name == 'audit_events'}" %>
-        
+
         <!-- SLA Trigger Button -->
         <%= button_to check_sla_detections_path, method: :post, class: "btn btn-secondary", style: "padding: 0.35rem 0.65rem; font-size: 0.75rem;" do %>
           Scan SLA Status
@@ -85,8 +98,47 @@
         <% else %>
           <%= link_to "Select Persona", new_session_path, class: "btn btn-primary" %>
         <% end %>
+
+        <!-- Theme Toggle Button (Aydınlık / Karanlık Mod) -->
+        <button id="themeToggleBtn" type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Aydınlık / Karanlık Modu Değiştir">
+          <span id="themeToggleIcon">🌙</span>
+          <span id="themeToggleText">Karanlık</span>
+        </button>
       </nav>
     </header>
+
+    <script>
+      function updateThemeToggleUI(theme) {
+        var icon = document.getElementById('themeToggleIcon');
+        var text = document.getElementById('themeToggleText');
+        if (!icon || !text) return;
+        if (theme === 'light') {
+          icon.textContent = '☀️';
+          text.textContent = 'Aydınlık';
+        } else {
+          icon.textContent = '🌙';
+          text.textContent = 'Karanlık';
+        }
+      }
+
+      function toggleTheme() {
+        var current = document.documentElement.getAttribute('data-theme') || 'dark';
+        var next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('sentriq_theme', next);
+        updateThemeToggleUI(next);
+      }
+
+      // Initialize button text on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        var current = document.documentElement.getAttribute('data-theme') || 'dark';
+        updateThemeToggleUI(current);
+      });
+    function toggleMenu() {
+      var nav = document.getElementById('navLinks');
+      if (nav) { nav.classList.toggle('open'); }
+    }
+   </script>
 
     <!-- Main Content Container -->
     <main class="main-container">

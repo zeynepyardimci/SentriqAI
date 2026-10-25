@@ -166,58 +166,111 @@
               <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
               <path d="M12 12L2.5 7.5"/>
             </svg>
-            <span style="color: #c084fc;">LLM Contextual Decision Engine</span>
+            <span style="color: #c084fc;">Sentriq AI Orchestrator Analizi</span>
           </div>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
             <span class="badge" style="background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid #8b5cf6;">
-              <%= @ticket.agent_mode == 'live_llm' ? 'Live LLM Provider' : 'Simulated Contextual Engine' %>
+              <%= @ticket.agent_mode == 'live_llm' ? 'Live LLM Provider' : 'Sentriq Contextual Middleware' %>
             </span>
-            <span class="badge" style="background: rgba(6, 182, 212, 0.2); color: #22d3ee; border: 1px solid var(--cyan-primary);">
-              Confidence: <%= analysis["confidence"] %>%
+            <% conf_val = analysis["confidence"].to_i %>
+            <% conf_display = conf_val > 0 ? "%#{conf_val}" : "Güven değerlendirmesi üretilemedi" %>
+            <span class="badge" style="background: rgba(6, 182, 212, 0.2); color: #22d3ee; border: 1px solid var(--cyan-primary);"
+                  title="<%= analysis['confidence_rationale'] || 'Telemetri kalitesi ve model değerlendirmesi.' %>">
+              Güven: <%= conf_display %>
             </span>
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
           <div style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: var(--radius-sm);">
-            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Evaluated Intent</div>
-            <div style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem;"><%= analysis["intent"]&.humanize %></div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Sınıflandırma / Niyet</div>
+            <div style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem;"><%= (analysis["classification"] || analysis["intent"])&.humanize %></div>
           </div>
           <div style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: var(--radius-sm);">
-            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Determined Priority</div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Önem Derecesi</div>
             <div style="font-weight: 600; font-size: 0.9rem;">
-              <span class="badge badge-<%= analysis["priority"] %>"><%= analysis["priority"]&.upcase %></span>
+              <span class="badge badge-<%= analysis["severity"] || analysis["priority"] %>"><%= (analysis["severity"] || analysis["priority"])&.upcase %></span>
             </div>
           </div>
         </div>
 
-        <!-- Rationale -->
-        <div class="ai-summary-box">
-          <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #a78bfa; margin-bottom: 0.35rem;">Contextual Rationale (Anlamsal Gerekçe)</div>
-          <%= analysis["rationale"] %>
+        <!-- Incident Summary -->
+        <% if analysis["incident_summary"].present? %>
+          <div style="background: rgba(6, 182, 212, 0.08); border-left: 3px solid var(--cyan-primary); padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem;">
+            <div style="font-size: 0.72rem; color: #38bdf8; font-weight: 700; text-transform: uppercase; margin-bottom: 0.25rem;">📝 Olay Özeti (Contextual Incident Summary):</div>
+            <div style="color: #cbd5e1; font-size: 0.85rem; line-height: 1.5;"><%= analysis["incident_summary"] %></div>
+          </div>
+        <% end %>
+
+        <!-- Root Causes Section -->
+        <% root_causes = analysis["root_cause_hypotheses"] || [] %>
+        <% if root_causes.any? %>
+          <div style="margin-bottom: 1rem;">
+            <div class="section-subtitle">🎯 Olası Kök Neden Hipotezleri</div>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <% root_causes.each_with_index do |rc, idx| %>
+                <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); padding: 0.65rem 0.85rem; border-radius: var(--radius-sm);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem;">
+                    <strong style="color: #c084fc; font-size: 0.85rem;"><%= idx == 0 ? "🎯 Birincil Hipotez:" : "🔄 Alternatif:" %> <%= rc["hypothesis"] %></strong>
+                    <span class="badge badge-<%= rc['likelihood']&.downcase == 'critical' ? 'critical' : 'high' %>" style="font-size: 0.65rem;"><%= rc["likelihood"] %></span>
+                  </div>
+                  <div style="font-size: 0.78rem; color: var(--text-secondary);"><%= rc["rationale"] %></div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Missing Evidence (Gaps) -->
+        <% missing_gaps = analysis["missing_evidence"] || [] %>
+        <% if missing_gaps.any? %>
+          <div style="margin-bottom: 1rem; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: var(--radius-sm); padding: 0.75rem 1rem;">
+            <div style="font-size: 0.72rem; color: #fbbf24; font-weight: 700; text-transform: uppercase; margin-bottom: 0.35rem;">❓ Eksik Kanıtlar & Analiz Sınırları (Evidence Gaps):</div>
+            <ul style="padding-left: 1.2rem; color: #e2e8f0; font-size: 0.78rem; line-height: 1.5;">
+              <% missing_gaps.each do |gap| %>
+                <li><%= gap %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <!-- Rationale & Confidence Basis -->
+        <div class="ai-summary-box" style="margin-bottom: 1rem;">
+          <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: #a78bfa; margin-bottom: 0.35rem;">🔍 Güven Değerlendirmesi Gerekçesi (Confidence Basis):</div>
+          <div style="font-size: 0.82rem; color: #cbd5e1; line-height: 1.5;">
+            <%= analysis["confidence_rationale"] || analysis["rationale"] %>
+          </div>
+          <div style="margin-top: 0.4rem; font-size: 0.7rem; color: #64748b; font-style: italic;">
+            Not: Model güven değerlendirmesi istatistiksel saldırı olasılığı değildir. Telemetri doluluğuna ve çıkarım gerekçesine dayanır.
+          </div>
         </div>
 
         <!-- Recommended Action -->
         <div style="margin-bottom: 1rem;">
-          <div class="section-subtitle">Önerilen Sonraki Eylem (Recommended Action)</div>
+          <div class="section-subtitle">Önerilen Müdahale Eylemi (Recommended Action)</div>
           <div style="background: rgba(6, 182, 212, 0.1); border-left: 3px solid var(--cyan-primary); padding: 0.75rem 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 0.85rem; color: #38bdf8;">
-            <%= analysis["recommended_action"] %>
+            <%= analysis["recommended_action"] || analysis["recommended_actions"]&.first %>
           </div>
         </div>
 
         <!-- RAG Citations -->
         <div class="section-subtitle">Doğrulanmış RAG Bilgi Kaynakları (Verified Runbooks)</div>
-        <% if (analysis["source_refs"] || []).any? %>
-          <% analysis["source_refs"].each do |ref| %>
+        <% runbooks_list = analysis["matched_runbooks"] || analysis["source_refs"] || [] %>
+        <% if runbooks_list.any? %>
+          <% runbooks_list.each do |ref| %>
             <div class="source-ref-card">
               <div class="source-ref-title">
-                <span><%= ref["document_title"] %> (<%= ref["category"]&.humanize %>)</span>
+                <span><%= ref["title"] || ref["document_title"] %> (<%= ref["category"]&.humanize || "Runbook" %>)</span>
                 <% if ref["document_id"].present? %>
                   <%= link_to "Dokümanı Aç &rarr;".html_safe, knowledge_document_path(ref["document_id"]), style: "font-size: 0.75rem;" %>
                 <% end %>
               </div>
-              <div class="source-ref-quote">"<%= ref["quote"] %>"</div>
-              <div class="source-ref-relevance">&rarr; <%= ref["relevance_explanation"] %></div>
+              <% if ref["quote"].present? %>
+                <div class="source-ref-quote">"<%= ref["quote"] %>"</div>
+              <% end %>
+              <% if ref["relevance"].present? || ref["relevance_explanation"].present? %>
+                <div class="source-ref-relevance">&rarr; <%= ref["relevance"] || ref["relevance_explanation"] %></div>
+              <% end %>
             </div>
           <% end %>
         <% else %>

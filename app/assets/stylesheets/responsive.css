@@ -1,0 +1,827 @@
+/* ================================================================
+   SENTRIQ AI — COMPREHENSIVE RESPONSIVE STYLESHEET v3
+   Zero content clipping, zero off-screen loss, 100% visible info
+   Supports: 320px, 375px, 480px, 600px, 768px, 992px, 1200px+
+   ================================================================ */
+
+/* ─── 1. UNIVERSAL BOX MODEL & ROOT CONTAINMENT ──────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+/* Base protection: elements should never blow past their parent width */
+img, svg, video, canvas, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ─── 2. UNIVERSAL TEXT WRAPPING & UNTRUNCATED READABILITY ────────── */
+body, p, span, div, td, th, li, label,
+.cell-title, .cell-meta, .telemetry-value,
+.hypothesis-rationale, .source-ref-quote,
+.source-ref-relevance, .bullet-item {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Pre-line & note bodies: ALWAYS wrap and NEVER clip vertically or horizontally */
+[style*="white-space: pre-line"],
+[style*="white-space:pre-line"],
+.panel-card [style*="white-space: pre-line"],
+.panel-card [style*="white-space:pre-line"] {
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+}
+
+/* Monospace & Command line blocks: wrap safely, zero overflow clipping */
+code, pre,
+.font-mono,
+[style*="font-family: var(--font-mono)"],
+[style*="font-family:var(--font-mono)"],
+[style*="JetBrains Mono"],
+[style*="monospace"],
+[style*="word-break: break-all"],
+[style*="word-break:break-all"] {
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+}
+
+/* ─── 3. DISCLAIMER BANNER ───────────────────────────────────────── */
+.disclaimer-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  padding: 0.4rem 1rem;
+  font-size: 0.72rem;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  word-break: break-word;
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* ─── 4. HEADER & TOP NAVIGATION ─────────────────────────────────── */
+.sentriq-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 1.25rem;
+  position: sticky !important;
+  top: 0;
+  z-index: 1000;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
+  width: 100%;
+  max-width: 100%;
+}
+
+.brand-container {
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.brand-title {
+  word-break: keep-all;
+  white-space: nowrap;
+}
+
+.menu-toggle {
+  display: none !important;
+  background: none;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  white-space: nowrap;
+  font-size: 0.8rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+
+.persona-badge {
+  font-size: 0.73rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.theme-toggle-btn {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.65rem;
+  white-space: nowrap;
+}
+
+/* ─── 5. MAIN CONTAINER ──────────────────────────────────────────── */
+.main-container {
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+/* ─── 6. METRICS GRID ────────────────────────────────────────────── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+  width: 100%;
+}
+
+.metric-card {
+  padding: 1rem;
+  overflow: visible;
+  min-width: 0;
+}
+
+/* ─── 7. FILTER BAR ──────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  width: 100%;
+}
+
+.filter-inputs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-inputs .input-control {
+  min-width: 0;
+  flex: 1 1 130px;
+  max-width: 100%;
+}
+
+/* ─── 8. TABLES & HORIZONTAL SCROLL CONTAINMENT ──────────────────── */
+.table-container {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-y: visible !important;
+  margin-bottom: 1.5rem !important;
+  border-radius: var(--radius-sm) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+
+.data-table {
+  width: 100% !important;
+  min-width: 580px;
+  border-collapse: collapse !important;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem 1rem;
+  font-size: 0.82rem;
+  vertical-align: top;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.action-btn-group {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ─── 9. DETAIL HEADERS & TELEMETRY STRIPS ───────────────────────── */
+.detail-header {
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  overflow: visible;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.detail-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.detail-header-top > div:first-child {
+  flex: 1 1 300px;
+  min-width: 0;
+}
+
+.detail-title {
+  font-size: 1.25rem;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  margin: 0.25rem 0 0.5rem 0;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.telemetry-strip {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+  gap: 0.75rem !important;
+  padding: 0.85rem !important;
+  overflow: visible !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.telemetry-item {
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.telemetry-value {
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  white-space: normal !important;
+  font-size: 0.8rem;
+}
+
+/* ─── 10. TRIAGE GRID (Used in /detections/:id and /tickets/:id) ──── */
+.triage-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 1.25rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  align-items: start !important;
+  box-sizing: border-box !important;
+}
+
+.triage-grid > * {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* ─── 11. PANEL CARDS & REPORT CONTAINERS ────────────────────────── */
+.panel-card {
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  overflow: visible !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
+
+.panel-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.ai-report-card {
+  overflow: visible !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
+
+/* ─── 12. COPILOT STUDIO GRID & SUBCOMPONENTS ─────────────────────── */
+.copilot-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.copilot-top-bar {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 0.75rem !important;
+  padding: 0.85rem 1rem !important;
+  margin-bottom: 1.25rem !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+.copilot-top-bar > div {
+  min-width: 0;
+}
+
+.scenario-pill-group {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.4rem !important;
+}
+
+.scenario-btn {
+  white-space: normal !important;
+  word-break: break-word !important;
+  text-align: left !important;
+  font-size: 0.75rem !important;
+  padding: 0.35rem 0.65rem !important;
+}
+
+/* Master Copilot Grid: columns with minmax(0, ...) NEVER blow out */
+.copilot-grid {
+  display: grid !important;
+  grid-template-columns: minmax(320px, 390px) minmax(0, 1fr) !important;
+  gap: 1.25rem !important;
+  align-items: start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.copilot-grid > *,
+.studio-right-panel,
+.deep-investigation-card,
+.autonomous-agent-box,
+.avatar-card {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Autonomous Agent Box */
+.agent-status-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 0.75rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.agent-status-header > div:first-child {
+  flex: 1 1 240px !important;
+  min-width: 0 !important;
+}
+
+#btnRunAutonomousTriage {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* 7-Step Autonomous Pipeline: wrap automatically */
+.autonomous-timeline-steps {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)) !important;
+  gap: 0.4rem !important;
+  margin-bottom: 1rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.auto-step-card {
+  min-width: 0 !important;
+  padding: 0.45rem 0.35rem !important;
+  word-break: break-word !important;
+  text-align: center !important;
+}
+
+.agent-live-terminal {
+  height: 120px;
+  overflow-y: auto;
+  font-size: 0.74rem;
+  word-break: break-all;
+  width: 100%;
+}
+
+/* 10 Navigation Tabs: ALWAYS WRAP INTO ROWS SO ALL 10 ARE 100% VISIBLE */
+.investigation-nav-tabs {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.4rem !important;
+  overflow: visible !important;
+  padding-bottom: 0.6rem !important;
+  margin-bottom: 1rem !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.tab-btn {
+  padding: 0.38rem 0.65rem !important;
+  font-size: 0.75rem !important;
+  white-space: nowrap !important;
+  flex: 0 1 auto !important;
+  border-radius: var(--radius-sm) !important;
+  cursor: pointer !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+
+.copilot-chat-history {
+  height: 280px;
+  overflow-y: auto;
+  width: 100%;
+}
+
+.quick-chips-grid {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.35rem !important;
+  width: 100% !important;
+}
+
+.chip-btn {
+  white-space: normal !important;
+  text-align: left !important;
+  font-size: 0.72rem !important;
+}
+
+.copilot-input-container {
+  display: flex !important;
+  gap: 0.5rem !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  width: 100% !important;
+}
+
+.copilot-text-input {
+  flex: 1 1 200px !important;
+  min-width: 0 !important;
+}
+
+/* ─── 13. DEMO SIMULATOR PAGE (/tickets/demo) ────────────────────── */
+[style*="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))"],
+[style*="grid-template-columns:repeat(auto-fit, minmax(320px, 1fr))"] {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+  width: 100% !important;
+}
+
+/* ─── 14. FLOATING PAGE AGENT WIDGET ─────────────────────────────── */
+#pa-ticket-modal {
+  width: min(560px, 94vw) !important;
+  max-height: 90vh !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  box-sizing: border-box !important;
+}
+
+#pa-toast {
+  width: min(340px, calc(100vw - 32px)) !important;
+  right: 16px !important;
+  bottom: 84px !important;
+  box-sizing: border-box !important;
+}
+
+/* ─── 15. FOOTER ─────────────────────────────────────────────────── */
+.sentriq-footer {
+  padding: 1.25rem 1rem;
+  font-size: 0.75rem;
+  text-align: center;
+  word-break: break-word;
+  color: var(--text-muted);
+}
+
+/* ─── 16. THEME ADAPTATION ───────────────────────────────────────── */
+[data-theme="light"] .nav-links {
+  background: rgba(255, 255, 255, 0.98);
+  border-top-color: #e2e8f0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+[data-theme="light"] .nav-link:hover,
+[data-theme="light"] .nav-link.active {
+  background: #f1f5f9;
+}
+
+/* ================================================================
+   RESPONSIVE BREAKPOINTS (Desktop -> Laptop -> Tablet -> Mobile)
+   ================================================================ */
+
+/* ── 1150px: Copilot collapses to single-column stack ── */
+@media (max-width: 1150px) {
+  .copilot-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── 992px: Tablet Breakpoint — Hamburger nav triggers ── */
+@media (max-width: 992px) {
+  .triage-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .menu-toggle {
+    display: inline-flex !important;
+  }
+
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    width: 100%;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0.75rem 1rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+  }
+
+  .nav-links.open {
+    display: flex !important;
+  }
+
+  .nav-link {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.88rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .persona-badge {
+    margin: 0.25rem 0;
+    justify-content: flex-start;
+  }
+
+  .theme-toggle-btn {
+    margin: 0.25rem 0;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .nav-links form,
+  .nav-links .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── 768px: Mobile / Small Tablet ── */
+@media (max-width: 768px) {
+  .sentriq-header {
+    padding: 0.5rem 0.85rem;
+  }
+
+  .brand-title {
+    font-size: 1rem;
+  }
+
+  .brand-tagline {
+    font-size: 0.62rem;
+  }
+
+  .main-container {
+    padding: 1rem 0.85rem;
+  }
+
+  .disclaimer-banner {
+    display: none; /* Conserve vertical viewport on mobile */
+  }
+
+  .detail-header {
+    padding: 1rem;
+  }
+
+  .detail-header-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .detail-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .detail-actions .btn,
+  .detail-actions form {
+    width: 100%;
+  }
+
+  .detail-actions .btn {
+    justify-content: center;
+  }
+
+  .telemetry-strip {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+    padding: 0.65rem !important;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+  }
+
+  .filter-inputs {
+    width: 100%;
+  }
+
+  .filter-inputs .input-control {
+    flex: 1 1 100%;
+  }
+
+  .copilot-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .copilot-top-bar > div {
+    width: 100%;
+  }
+
+  #eventSelector {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .autonomous-timeline-steps {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)) !important;
+  }
+
+  /* Inline style 2-column grids inside cards become 1-column */
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── 600px: Standard Phone ── */
+@media (max-width: 600px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.55rem 0.65rem;
+    font-size: 0.78rem;
+  }
+
+  .action-btn-group {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .action-btn-group .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .panel-title {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .copilot-chat-history {
+    height: 220px;
+  }
+
+  .agent-live-terminal {
+    height: 100px;
+  }
+}
+
+/* ── 480px: Small Phone ── */
+@media (max-width: 480px) {
+  body {
+    font-size: 13px;
+  }
+
+  .main-container {
+    padding: 0.75rem 0.6rem;
+  }
+
+  .metric-card {
+    padding: 0.75rem;
+  }
+
+  .metric-value {
+    font-size: 1.3rem;
+  }
+
+  .telemetry-strip {
+    grid-template-columns: 1fr !important;
+  }
+
+  .copilot-input-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .copilot-input-container .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .mic-toggle-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  #pa-orb {
+    width: 46px !important;
+    height: 46px !important;
+    bottom: 14px !important;
+    right: 14px !important;
+  }
+
+  #pa-toast {
+    bottom: 72px !important;
+    right: 8px !important;
+    width: calc(100vw - 16px) !important;
+  }
+
+  #pa-ticket-modal {
+    width: 98vw !important;
+    max-height: 94vh !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* ── 375px: iPhone SE / Narrow Devices ── */
+@media (max-width: 375px) {
+  .brand-title {
+    font-size: 0.92rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tab-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ── 320px: Minimum Supported Device ── */
+@media (max-width: 320px) {
+  .brand-tagline {
+    display: none;
+  }
+
+  .brand-logo-svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+}
